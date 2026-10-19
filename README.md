@@ -4,7 +4,7 @@
 
 # Plevi TA
 
-Plevi TA is an app for iPhone, iPad and Apple TV that lets you browse and watch your [Tube Archivist](https://docs.tubearchivist.com) library. Tube Archivist is the self-hosted YouTube archive, and you point the app at the server you run yourself. It's an independent project and isn't affiliated with Tube Archivist.
+Plevi TA is an app for iPhone, iPad and Apple TV that lets you browse and watch your [Tube Archivist](https://github.com/tubearchivist/tubearchivist) library. Tube Archivist is the self-hosted YouTube archive, and you point the app at the server you run yourself. It's an independent project and isn't affiliated with Tube Archivist.
 
 You get the things you'd expect: Home, Channels, Playlists and Search, playback that remembers where you stopped and syncs your progress back to the server, and a watched filter. Here is what it does on top of that.
 
@@ -18,7 +18,6 @@ You get the things you'd expect: Home, Channels, Playlists and Search, playback 
 - **SponsorBlock.** It uses the segments your server has already stored, and works online and offline. You choose which kinds to skip: sponsors, self-promotion, intros and outros.
 - **Signing in your way.** Use an API token, a username and password, or the sign-in page of a server that sits behind a login. You can set a local and a remote address, and the app switches between them for you.
 - **Made for slow connections.** Thumbnails, channel art and a copy of Home are kept on the device, so the app opens quickly and still shows pictures when the connection is poor or missing.
-- **Apple TV.** A sidebar you can navigate with the remote, and a Top Shelf row.
 
 ## Privacy
 
