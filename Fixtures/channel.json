@@ -1,0 +1,12 @@
+{
+  "channel_id": "UCsynthetic00000000000000",
+  "channel_name": "Synthetic Fixture Channel",
+  "channel_description": "A channel that does not exist, used only for fixture decoding tests.",
+  "channel_subscribed": true,
+  "channel_thumb_url": "/cache/channels/UCsynthetic00000000000000.jpg",
+  "channel_banner_url": "/cache/channels/UCsynthetic00000000000000_banner.jpg",
+  "channel_tvart_url": "/cache/channels/UCsynthetic00000000000000_tvart.jpg",
+  "channel_last_refresh": "10 Sep 2026",
+  "channel_subs": 128000,
+  "channel_views": 9800000
+}

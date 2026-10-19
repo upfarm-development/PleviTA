@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "channel_id": "UCsynthetic00000000000000",
+      "channel_name": "Synthetic Fixture Channel",
+      "channel_subscribed": true,
+      "channel_thumb_url": "/cache/channels/UCsynthetic00000000000000.jpg"
+    },
+    {
+      "channel_id": "UCsynthetic00000000000001",
+      "channel_name": "Another Synthetic Channel",
+      "channel_subscribed": false,
+      "channel_thumb_url": "/cache/channels/UCsynthetic00000000000001.jpg"
+    }
+  ],
+  "paginate": {
+    "page_size": 2,
+    "current_page": 1,
+    "last_page": 1,
+    "total_hits": 2
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "results": {
+    "video_results": [
+      {
+        "youtube_id": "aaaaaaaaaaa",
+        "title": "Synthetic List Video A",
+        "vid_thumb_url": "/cache/videos/aa/aaaaaaaaaaa.jpg",
+        "channel": { "channel_id": "UCsynthetic00000000000000", "channel_name": "Synthetic Fixture Channel" }
+      }
+    ],
+    "channel_results": [
+      {
+        "channel_id": "UCsynthetic00000000000000",
+        "channel_name": "Synthetic Fixture Channel",
+        "channel_thumb_url": "/cache/channels/UCsynthetic00000000000000.jpg"
+      }
+    ],
+    "playlist_results": [
+      {
+        "playlist_id": "PLsynthetic0000000000000000",
+        "playlist_name": "Synthetic Fixture Playlist",
+        "playlist_thumbnail": "/cache/playlists/PLsynthetic0000000000000000.jpg"
+      }
+    ]
+  }
+}

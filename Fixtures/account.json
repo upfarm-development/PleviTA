@@ -1,0 +1,6 @@
+{
+  "id": 1,
+  "username": "admin",
+  "is_staff": true,
+  "is_superuser": true
+}

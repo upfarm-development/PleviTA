@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "playlist_id": "PLsynthetic0000000000000000",
+      "playlist_name": "Synthetic Fixture Playlist",
+      "playlist_channel": "Synthetic Fixture Channel",
+      "playlist_channel_id": "UCsynthetic00000000000000",
+      "playlist_thumbnail": "/cache/playlists/PLsynthetic0000000000000000.jpg",
+      "playlist_subscribed": true,
+      "playlist_type": "regular"
+    }
+  ],
+  "paginate": {
+    "page_size": 1,
+    "current_page": 1,
+    "last_page": 1,
+    "total_hits": 1
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "youtube_id": "vankPlotnvE",
+  "title": "So You're Thinking Of Buying A Folding Phone",
+  "player": {
+    "duration": 907
+  },
+  "sponsorblock": {
+    "is_enabled": true,
+    "has_unlocked": false,
+    "last_refresh": 1789925154,
+    "segments": [
+      {
+        "actionType": "skip",
+        "videoDuration": 906.581,
+        "segment": [
+          0.0,
+          5.28
+        ],
+        "votes": 2,
+        "category": "sponsor",
+        "UUID": "36973144ec75a6e47b900934c8659600c040750457cb006593ae1ced98fe2ece7",
+        "locked": 1
+      },
+      {
+        "actionType": "skip",
+        "videoDuration": 906.581,
+        "segment": [
+          356.573,
+          442.578
+        ],
+        "votes": 0,
+        "category": "sponsor",
+        "UUID": "10d3a29ff4e479e2a7c557c49903f27e06fa3cc9383fc7e2b972c4ec21b2f7b67",
+        "locked": 1
+      },
+      {
+        "actionType": "none",
+        "videoDuration": 906.581,
+        "segment": [
+          859.71,
+          906.581
+        ],
+        "votes": 0,
+        "category": "outro",
+        "UUID": "6497702fc9fbb4898ef002b8cf97481acd399fd205eedd9b61d2f28b2aa5e38e7",
+        "locked": 0
+      },
+      {
+        "actionType": "none",
+        "videoDuration": 906.581,
+        "segment": [
+          884.0,
+          894.2
+        ],
+        "votes": 0,
+        "category": "interaction",
+        "UUID": "c36fe39d3486e2e51fcb5292eebf93f0c1c4b9dcde51bfc866578ab0c88cb8487",
+        "locked": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "data": [
+    {
+      "youtube_id": "aaaaaaaaaaa",
+      "title": "Synthetic List Video A",
+      "description": null,
+      "published": "01 Sep 2026",
+      "date_downloaded": 1756684800,
+      "vid_type": "videos",
+      "vid_thumb_url": "/cache/videos/aa/aaaaaaaaaaa.jpg",
+      "media_url": "/media/synthetic-channel/aaaaaaaaaaa.mp4",
+      "media_size": 55000000,
+      "active": true,
+      "tags": [],
+      "category": [],
+      "comment_count": 0,
+      "player": { "duration": 300, "duration_str": "05:00", "watched": true },
+      "channel": {
+        "channel_id": "UCsynthetic00000000000000",
+        "channel_name": "Synthetic Fixture Channel",
+        "channel_thumb_url": "/cache/channels/UCsynthetic00000000000000.jpg",
+        "channel_subscribed": true
+      }
+    },
+    {
+      "youtube_id": "bbbbbbbbbbb",
+      "title": "Synthetic List Video B",
+      "published": "02 Sep 2026",
+      "date_downloaded": 1756771200,
+      "vid_type": "shorts",
+      "vid_thumb_url": "/cache/videos/bb/bbbbbbbbbbb.jpg",
+      "media_url": "/media/synthetic-channel/bbbbbbbbbbb.mp4",
+      "active": true,
+      "player": { "duration": 45, "duration_str": "00:45", "watched": false },
+      "channel": {
+        "channel_id": "UCsynthetic00000000000000",
+        "channel_name": "Synthetic Fixture Channel"
+      }
+    }
+  ],
+  "paginate": {
+    "page_size": 2,
+    "page_from": 0,
+    "prev_pages": [],
+    "current_page": 1,
+    "max_hits": false,
+    "last_page": 3,
+    "next_pages": [2, 3],
+    "total_hits": 6
+  }
+}

@@ -1,0 +1,36 @@
+[
+  {
+    "comment_id": "c1",
+    "comment_text": "Synthetic top-level comment one.",
+    "comment_author": "Synthetic Viewer A",
+    "comment_author_id": "UCviewerA0000000000000000",
+    "comment_author_thumbnail": "/cache/comments/viewerA.jpg",
+    "comment_author_is_uploader": false,
+    "comment_time_text": "1 day ago",
+    "comment_timestamp": 1757539200,
+    "comment_likecount": 12,
+    "comment_is_favorited": false,
+    "comment_parent": "root"
+  },
+  {
+    "comment_id": "c2",
+    "comment_text": "Synthetic reply to comment one.",
+    "comment_author": "Synthetic Fixture Channel",
+    "comment_author_id": "UCsynthetic00000000000000",
+    "comment_author_thumbnail": "/cache/channels/UCsynthetic00000000000000.jpg",
+    "comment_author_is_uploader": true,
+    "comment_time_text": "20 hours ago",
+    "comment_timestamp": 1757570400,
+    "comment_likecount": 3,
+    "comment_is_favorited": true,
+    "comment_parent": "c1"
+  },
+  {
+    "comment_id": "c3",
+    "comment_text": "Synthetic second top-level comment, no likes field.",
+    "comment_author": "Synthetic Viewer B",
+    "comment_author_id": "UCviewerB0000000000000000",
+    "comment_time_text": "3 hours ago",
+    "comment_parent": "root"
+  }
+]

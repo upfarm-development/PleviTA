@@ -1,0 +1,26 @@
+// Local.xcconfig.example
+//
+// Copy this file to Config/Local.xcconfig (gitignored — never commit it) to
+// prefill the login screen with a dev Tube Archivist server while debugging.
+// These values are only ever read from Info.plist in DEBUG builds. Leave both blank to disable prefill.
+//
+// TA_DEV_SERVER_URL: e.g. http://127.0.0.1:8081 for the local mock server,
+// or the http(s) URL of a real Tube Archivist instance on your LAN.
+// TA_DEV_TOKEN: a Tube Archivist API token (Settings > User Config on the
+// server, or GET /api/appsettings/token/ as an admin). Never a real
+// password. Never commit a real token.
+//
+// IMPORTANT — xcconfig syntax treats `//` as a line comment, so a literal
+// `http://` in a value silently truncates everything after it (TA_DEV_SERVER_URL
+// would end up as just "http:"). Break up the double slash with an empty
+// build-setting reference, `$()`, which xcconfig expands to nothing:
+// `http:/$()/127.0.0.1:8081` becomes the real value `http://127.0.0.1:8081`.
+
+TA_DEV_SERVER_URL = http:/$()/127.0.0.1:8081
+TA_DEV_TOKEN =
+
+// DEVELOPMENT_TEAM: your 10-character Apple Developer Team ID, needed only
+// to build and run on a physical iPhone/iPad/Apple TV (the simulator builds
+// fine with this left unset). Find it in Xcode > Settings > Accounts, or via
+// `security find-identity -v -p codesigning`.
+DEVELOPMENT_TEAM =

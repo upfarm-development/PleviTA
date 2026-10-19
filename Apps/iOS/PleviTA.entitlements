@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- iCloud's key-value store, used by PlaybackHistory so "Continue Watching"
+	     leads with what this user actually watched most recently on any of their
+	     own devices. Tube Archivist stores no playback timestamps at all, so this
+	     ordering can only come from the app.
+
+	     $(TeamIdentifierPrefix)$(CFBundleIdentifier) resolves to the same string
+	     here and in PleviTA-tvOS.entitlements because both apps ship the same
+	     bundle identifier ($(PLEVI_BUNDLE_ID) in Config/Base.xcconfig) — which is
+	     what puts the iPhone and the Apple TV in one store with no special casing.
+	     PleviTA-TopShelf deliberately has no KVS entitlement: it reads the merged
+	     result from the shared App Group instead.
+
+	     Like the group identifiers in the tvOS file, iCloud has to be enabled for
+	     this bundle id in the Apple Developer portal before a signed build can use
+	     it — this checkout alone can't do that. -->
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+</dict>
+</plist>

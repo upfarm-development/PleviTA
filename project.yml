@@ -1,0 +1,170 @@
+name: PleviTA
+options:
+  createIntermediateGroups: true
+  deploymentTarget:
+    # iOS 18+: raised from 17 to use `Tab(role: .search)` in the iPhone tab bar.
+    iOS: "18.0"
+    tvOS: "17.0"
+
+configs:
+  Debug: debug
+  Release: release
+
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+
+packages:
+  PleviCore:
+    path: Packages/PleviCore
+  PleviFallbackPlayer:
+    path: Packages/PleviFallbackPlayer
+
+targets:
+  PleviTA:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Apps/iOS
+      - path: Apps/Shared
+    dependencies:
+      - package: PleviCore
+      - package: PleviFallbackPlayer
+    settings:
+      base:
+        PRODUCT_NAME: "Plevi TA"
+        PRODUCT_BUNDLE_IDENTIFIER: $(PLEVI_BUNDLE_ID)
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Apps/iOS/Info.plist
+        # iCloud key-value store for PlaybackHistory — see the file's own comment.
+        CODE_SIGN_ENTITLEMENTS: Apps/iOS/PleviTA.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Apps/iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Plevi TA
+        # Export compliance: the app implements no encryption of its own — it only uses what the OS provides (HTTPS via URLSession, the Keychain, WKWebView).
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - audio
+          - fetch
+        # Home's background refresh (HomeBackgroundRefresh.taskIdentifier); the system terminates an
+        # app that registers an identifier not listed here.
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.plevi.ta.home-refresh
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: "Plevi TA uses your local network to reach your Tube Archivist server when it's on the same Wi-Fi."
+        # Dev-only prefill for the login screen; read from Info.plist in DEBUG builds only (see DevServerConfig.swift).
+        TADevServerURL: $(TA_DEV_SERVER_URL)
+        TADevToken: $(TA_DEV_TOKEN)
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
+
+  PleviTA-tvOS:
+    type: application
+    platform: tvOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Apps/tvOS
+      - path: Apps/Shared
+    dependencies:
+      - package: PleviCore
+      - package: PleviFallbackPlayer
+      - target: PleviTA-TopShelf
+        embed: true
+    settings:
+      base:
+        PRODUCT_NAME: "Plevi TA"
+        PRODUCT_BUNDLE_IDENTIFIER: $(PLEVI_BUNDLE_ID)
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Apps/tvOS/Info.plist
+        # Keychain Access Group + App Group, shared with PleviTA-TopShelf — see the .entitlements file's own comment.
+        CODE_SIGN_ENTITLEMENTS: Apps/tvOS/PleviTA-tvOS.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
+    info:
+      path: Apps/tvOS/Info.plist
+      properties:
+        CFBundleDisplayName: Plevi TA
+        # Export compliance: the app implements no encryption of its own — it only uses what the OS provides (HTTPS via URLSession, the Keychain, WKWebView).
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: "Plevi TA uses your local network to reach your Tube Archivist server when it's on the same Wi-Fi."
+        # See PleviTA target: dev-only login prefill, DEBUG builds only.
+        TADevServerURL: $(TA_DEV_SERVER_URL)
+        TADevToken: $(TA_DEV_TOKEN)
+        AppIdentifierPrefix: $(AppIdentifierPrefix)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.plevi.ta
+            CFBundleURLSchemes:
+              - plevita
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
+
+  # tvOS Top Shelf extension — shows a "Continue Watching" row on the tvOS Home Screen when this app is one of the recently-used apps there.
+  PleviTA-TopShelf:
+    type: app-extension
+    platform: tvOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Apps/TopShelf
+    dependencies:
+      - package: PleviCore
+    settings:
+      base:
+        PRODUCT_NAME: "Plevi TA Top Shelf"
+        # App-extension bundle ids must be the containing app's id plus at least one more component (Apple's own requirement).
+        PRODUCT_BUNDLE_IDENTIFIER: $(PLEVI_BUNDLE_ID).topshelf
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Apps/TopShelf/Info.plist
+        SKIP_INSTALL: YES
+        CODE_SIGN_ENTITLEMENTS: Apps/TopShelf/PleviTA-TopShelf.entitlements
+    info:
+      path: Apps/TopShelf/Info.plist
+      properties:
+        CFBundleDisplayName: Plevi TA Top Shelf
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # See PleviTA-tvOS target: same runtime Team-ID-prefix lookup, same
+        # reason — this process has its own separate Bundle.main.
+        AppIdentifierPrefix: $(AppIdentifierPrefix)
+        UIRequiredDeviceCapabilities:
+          - arm64
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.tv-top-shelf
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).TopShelfContentProvider
+    scheme:
+      testTargets: []
+      gatherCoverageData: false

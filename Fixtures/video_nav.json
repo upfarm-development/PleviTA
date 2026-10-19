@@ -1,0 +1,19 @@
+[
+  {
+    "playlist_meta": {
+      "current_idx": 1,
+      "playlist_id": "PLsynthetic0000000000000000",
+      "playlist_name": "Synthetic Fixture Playlist",
+      "playlist_channel": "Synthetic Fixture Channel"
+    },
+    "playlist_previous": null,
+    "playlist_next": {
+      "youtube_id": "bbbbbbbbbbb",
+      "title": "Synthetic List Video B",
+      "uploader": "Synthetic Fixture Channel",
+      "idx": 2,
+      "downloaded": true,
+      "vid_thumb": "/cache/videos/b/bbbbbbbbbbb.jpg"
+    }
+  }
+]

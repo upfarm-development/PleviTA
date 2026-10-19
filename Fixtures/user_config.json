@@ -1,0 +1,20 @@
+{
+  "page_size": 12,
+  "sort_by": "published",
+  "sort_order": "desc",
+  "hide_watched": false,
+  "hide_watched_channel": false,
+  "hide_watched_playlist": false,
+  "vid_type_filter": "videos",
+  "show_subed_only": true,
+  "show_subed_only_playlists": false,
+  "grid_items": 3,
+  "view_style_home": "grid",
+  "view_style_channel": "grid",
+  "view_style_playlist": "grid",
+  "view_style_downloads": "list",
+  "stylesheet": "dark.css",
+  "file_size_unit": "binary",
+  "show_ignored_only": false,
+  "show_help_text": true
+}

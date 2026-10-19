@@ -1,0 +1,58 @@
+{
+  "youtube_id": "dQw4w9WgXcQ",
+  "title": "Synthetic Fixture Video One",
+  "description": "This is a synthetic description used only for PleviCoreTests decode tests. It mentions a timestamp 01:23 and a link https://example.com for future linkify testing.",
+  "published": "12 Sep 2026",
+  "date_downloaded": 1757625600,
+  "vid_type": "videos",
+  "vid_thumb_url": "/cache/videos/sy/dQw4w9WgXcQ.jpg",
+  "media_url": "/media/synthetic-channel/dQw4w9WgXcQ.mp4",
+  "media_size": 123456789,
+  "active": true,
+  "tags": ["synthetic", "fixture"],
+  "category": ["Education"],
+  "comment_count": 2,
+  "streams": [
+    { "type": "video", "codec": "h264", "width": 1920, "height": 1080, "bitrate": 4500000 },
+    { "type": "audio", "codec": "aac", "width": null, "height": null, "bitrate": 128000 }
+  ],
+  "stats": {
+    "view_count": 42000,
+    "like_count": 1200,
+    "dislike_count": 3,
+    "average_rating": 4.8
+  },
+  "player": {
+    "duration": 754,
+    "duration_str": "12:34",
+    "watched": false,
+    "position": 90,
+    "progress": 11.9
+  },
+  "channel": {
+    "channel_id": "UCsynthetic00000000000000",
+    "channel_name": "Synthetic Fixture Channel",
+    "channel_thumb_url": "/cache/channels/UCsynthetic00000000000000.jpg",
+    "channel_banner_url": "/cache/channels/UCsynthetic00000000000000_banner.jpg",
+    "channel_tvart_url": "/cache/channels/UCsynthetic00000000000000_tvart.jpg",
+    "channel_subscribed": true,
+    "channel_description": "A channel that does not exist, used only for fixture decoding.",
+    "channel_last_refresh": "10 Sep 2026"
+  },
+  "subtitles": [
+    { "name": "English", "lang": "en", "media_url": "/media/synthetic-channel/dQw4w9WgXcQ.en.vtt", "source": "auto" }
+  ],
+  "playlist": ["PLsynthetic0000000000000000"],
+  "sponsorblock": {
+    "is_enabled": true,
+    "last_refresh": 1789466431,
+    "has_unlocked": false,
+    "segments": [
+      { "actionType": "none", "videoDuration": 1540.301, "segment": [280.339, 295.501], "votes": 0, "category": "selfpromo", "UUID": "6c516fff2acc5643bced9f71f962a5ed3e41da3acde77287342da05bcc1ab0597", "locked": 0 },
+      { "actionType": "none", "videoDuration": 1540.301, "segment": [591.041, 704.714], "votes": 5, "category": "selfpromo", "UUID": "e1ad7cb73054b547c22b802d2df97e17d7cc912cfb1073a8c0f17d914b7b05ac7", "locked": 1 },
+      { "actionType": "none", "videoDuration": 1540.2955, "segment": [1514.2, 1517.95], "votes": 2, "category": "selfpromo", "UUID": "521c895b01117bfd98c01bdf6b13a9df37f3c784a262a79765e6fe1584d5be4f7", "locked": 0 },
+      { "actionType": "none", "videoDuration": 1540.2955, "segment": [1520.1, 1540.295], "votes": 1, "category": "outro", "UUID": "4337c67e5bd5cbbfb59f6e6427fcb9ca46fdf025efb93d683d865ab4ac998c647", "locked": 0 },
+      { "actionType": "none", "videoDuration": 1540.301, "segment": [1358.6, 1358.6], "votes": 0, "category": "poi_highlight", "UUID": "76539e88b45586bf72e2d45d3ba6dc0803fa2d6159cf1995d4b8ba3a5d1635847", "locked": 0 }
+    ]
+  }
+}

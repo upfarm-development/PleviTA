@@ -1,0 +1,16 @@
+{
+  "playlist_id": "PLsynthetic0000000000000000",
+  "playlist_name": "Synthetic Fixture Playlist",
+  "playlist_channel": "Synthetic Fixture Channel",
+  "playlist_channel_id": "UCsynthetic00000000000000",
+  "playlist_description": "A playlist that does not exist, used only for fixture decoding tests.",
+  "playlist_thumbnail": "/cache/playlists/PLsynthetic0000000000000000.jpg",
+  "playlist_subscribed": true,
+  "playlist_type": "regular",
+  "playlist_sort_order": "playlist",
+  "playlist_entries": [
+    { "youtube_id": "aaaaaaaaaaa", "title": "Synthetic List Video A", "uploader": "Synthetic Fixture Channel", "idx": 0, "downloaded": true },
+    { "youtube_id": "bbbbbbbbbbb", "title": "Synthetic List Video B", "uploader": "Synthetic Fixture Channel", "idx": 1, "downloaded": true },
+    { "youtube_id": "ccccccccccc", "title": "Synthetic List Video C (not downloaded)", "uploader": "Synthetic Fixture Channel", "idx": 2, "downloaded": false }
+  ]
+}

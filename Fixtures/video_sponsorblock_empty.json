@@ -1,0 +1,11 @@
+{
+  "youtube_id": "sponsorblockempty1",
+  "title": "Synthetic Fixture Video With Empty SponsorBlock Segments",
+  "vid_type": "videos",
+  "player": { "duration": 131, "duration_str": "2m 11s", "watched": true },
+  "sponsorblock": {
+    "is_enabled": true,
+    "last_refresh": 1789718378,
+    "segments": []
+  }
+}
