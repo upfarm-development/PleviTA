@@ -7,6 +7,12 @@ Two numbers move independently, both set in `Config/Base.xcconfig`:
 `CURRENT_PROJECT_VERSION` is the build, bumped every commit by
 `Scripts/bump_build_number.sh`.
 
+## 1.0.0 (206)
+
+CHANGED
+
+- In the custom player on iPhone and iPad, the button at the top left in full screen is now an X, like Apple's player.
+
 ## 1.0.0 (205)
 
 FIXED
