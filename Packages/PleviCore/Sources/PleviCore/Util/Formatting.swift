@@ -2,6 +2,14 @@
 import Foundation
 
 public enum PleviFormatting {
+    /// "12 videos", or "5 of 12 videos" when some of the 12 are hidden (for example by "Hide
+    /// watched videos"). `onServer` is how many of the playlist's videos Tube Archivist actually has;
+    /// `showing` is how many are in the list right now.
+    public static func videoCountText(onServer: Int, showing: Int) -> String {
+        let noun = onServer == 1 ? "video" : "videos"
+        return showing == onServer ? "\(onServer) \(noun)" : "\(showing) of \(onServer) \(noun)"
+    }
+
     /// `total_size`/`Video.mediaSize` (bytes) -> a short human-readable string ("4.5 GiB") using the design system's own binary-unit labels.
     public static func byteCount(_ bytes: Int) -> String {
         guard bytes > 0 else { return "0 B" }

@@ -40,9 +40,7 @@ public final class PlaybackLog: @unchecked Sendable {
     }
 
     private static func defaultDirectory() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return base.appendingPathComponent("PlaybackLogs", isDirectory: true)
+        return StorageLocation.base.appendingPathComponent("PlaybackLogs", isDirectory: true)
     }
 
     // MARK: - Writing

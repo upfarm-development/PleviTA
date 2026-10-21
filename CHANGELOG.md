@@ -7,6 +7,26 @@ Two numbers move independently, both set in `Config/Base.xcconfig`:
 `CURRENT_PROJECT_VERSION` is the build, bumped every commit by
 `Scripts/bump_build_number.sh`.
 
+## 1.0.0 (205)
+
+FIXED
+
+- The video count at the top of a playlist now shows how many of its videos Tube Archivist has, and "5 of 12 videos" when Hide watched hides some.
+
+## 1.0.0 (204)
+
+FIXED
+
+- On iPhone and iPad, Remove Watched now tells you what it did right away on the Storage screen, instead of after you go back.
+- Remove Watched says so when the server can't be reached, rather than reporting that nothing was watched.
+
+## 1.0.0 (203)
+
+FIXED
+
+- Apple TV: pictures and the Home screen now stay saved between launches, as they do on iPhone and iPad.
+- Apple TV: another attempt at stopping a fast double Back press from leaving the app after a menu.
+
 ## 1.0.0 (202)
 
 CHANGED

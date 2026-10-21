@@ -180,4 +180,13 @@ struct BitRateFormattingTests {
     func dataRateUnchanged() {
         #expect(PleviFormatting.dataRate(bitsPerSecond: 4_620_000).hasSuffix("KiB/s"))
     }
+
+    @Test("the playlist video count says how many are shown out of how many Tube Archivist has")
+    func videoCountText() {
+        #expect(PleviFormatting.videoCountText(onServer: 12, showing: 12) == "12 videos")
+        #expect(PleviFormatting.videoCountText(onServer: 1, showing: 1) == "1 video")
+        #expect(PleviFormatting.videoCountText(onServer: 12, showing: 5) == "5 of 12 videos")
+        #expect(PleviFormatting.videoCountText(onServer: 1, showing: 0) == "0 of 1 video")
+        #expect(PleviFormatting.videoCountText(onServer: 0, showing: 0) == "0 videos")
+    }
 }

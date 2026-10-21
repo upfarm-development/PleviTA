@@ -4,7 +4,7 @@
 PLEVI_BUNDLE_ID = com.plevi.ta
 
 MARKETING_VERSION = 1.0.0
-CURRENT_PROJECT_VERSION = 202
+CURRENT_PROJECT_VERSION = 205
 
 // iOS 18+: raised from 17 specifically to use `Tab(role: .search)` in the iPhone tab bar.
 IPHONEOS_DEPLOYMENT_TARGET = 18.0

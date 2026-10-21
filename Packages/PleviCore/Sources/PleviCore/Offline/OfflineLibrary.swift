@@ -456,13 +456,29 @@ public final class OfflineLibrary {
 
     @discardableResult
     public func removeWatched(client: TAClient) async -> Int {
-        var removed = 0
+        await removeWatchedReport(client: client).removed
+    }
+
+    /// What `removeWatched` did: how many saved videos it removed, and how many it could not check
+    /// at all (the server did not answer). Without the second number, no connection looked the
+    /// same as "nothing is watched".
+    public struct RemoveWatchedReport: Equatable, Sendable {
+        public var removed: Int
+        public var unchecked: Int
+    }
+
+    public func removeWatchedReport(client: TAClient) async -> RemoveWatchedReport {
+        var report = RemoveWatchedReport(removed: 0, unchecked: 0)
         for entry in entries where entry.record.state == .complete {
-            guard let video = try? await client.video(id: entry.id), video.player?.watched == true else { continue }
+            guard let video = try? await client.video(id: entry.id) else {
+                report.unchecked += 1
+                continue
+            }
+            guard video.player?.watched == true else { continue }
             await delete(videoId: entry.id)
-            removed += 1
+            report.removed += 1
         }
-        return removed
+        return report
     }
 
     // MARK: - Metadata refresh and orphans

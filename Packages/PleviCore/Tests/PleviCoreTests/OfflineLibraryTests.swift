@@ -321,6 +321,34 @@ struct OfflineLibraryTests {
         #expect(library.isSaved(videoId: "v2"))
     }
 
+    @Test("removeWatched reports videos it could not check instead of treating them as not watched")
+    func removeWatchedReportsUncheckedVideos() async throws {
+        let (library, root) = makeLibrary()
+        defer { try? FileManager.default.removeItem(at: root) }
+        await library.adopt(scope: "https://ta.example.com")
+
+        for id in ["v1", "v2"] {
+            _ = await library.beginSave(video: makeVideo(id: id))
+            let temp = FileManager.default.temporaryDirectory.appendingPathComponent("staged-\(UUID().uuidString).mp4")
+            try Data([0x01]).write(to: temp)
+            await library.markComplete(videoId: id, from: temp)
+        }
+
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = TAClient(
+            serverURL: URL(string: "https://mock-\(UUID().uuidString.prefix(8)).test")!,
+            credentialStore: credentialStore,
+            urlSession: MockURLProtocol.makeSession()
+        )
+        MockURLProtocol.handler = { _ in .init(statusCode: 503, body: Data()) }
+
+        let report = await library.removeWatchedReport(client: client)
+        #expect(report == OfflineLibrary.RemoveWatchedReport(removed: 0, unchecked: 2))
+        #expect(library.isSaved(videoId: "v1"))
+        #expect(library.isSaved(videoId: "v2"))
+    }
+
     @Test("skipReload leaves entries stale until the caller reloads itself")
     func skipReloadDeferesEntriesUpdate() async {
         let (library, root) = makeLibrary()

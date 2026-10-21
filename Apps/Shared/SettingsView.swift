@@ -16,13 +16,13 @@ struct SettingsView: View {
     #if os(iOS)
     @Environment(OfflineLibrary.self) private var offlineLibrary
     @State private var isConfirmingRemoveWatched = false
+    @State private var isRemovingWatched = false
     /// Bytes held by shelves belonging to some other server — see `storageSection`.
     @State private var foreignBytes = 0
     @State private var storageNotice: String?
     @AppStorage(PlaybackLog.enabledKey) private var playbackLogging = true
     @State private var playbackLogSize: Int64 = 0
     @State private var isConfirmingClearLog = false
-    @State private var removeWatchedResultMessage: String?
     #endif
 
     @State private var localServerURLText = ""
@@ -105,20 +105,6 @@ struct SettingsView: View {
                     Task { await authStore.reresolveServerAddressIfNeeded(force: true) }
                 }
             }
-        }
-        #endif
-        #if os(iOS)
-        .alert(
-            "Storage",
-            isPresented: Binding(
-                get: { removeWatchedResultMessage != nil },
-                set: { if !$0 { removeWatchedResultMessage = nil } }
-            ),
-            presenting: removeWatchedResultMessage
-        ) { _ in
-            Button("OK") {}
-        } message: { message in
-            Text(message)
         }
         #endif
     }
@@ -461,6 +447,21 @@ struct SettingsView: View {
         }
     }
 
+    /// The sentence shown after "Remove Watched". A video the server could not be asked about is
+    /// said so, rather than counted as "not watched".
+    private static func removeWatchedMessage(_ report: OfflineLibrary.RemoveWatchedReport) -> String {
+        var parts: [String] = []
+        if report.removed > 0 {
+            parts.append("Removed \(report.removed) watched video\(report.removed == 1 ? "" : "s").")
+        } else if report.unchecked == 0 {
+            parts.append("Nothing to remove. No saved video is marked watched on the server.")
+        }
+        if report.unchecked > 0 {
+            parts.append("Couldn't check \(report.unchecked) video\(report.unchecked == 1 ? "" : "s") because the server didn't answer.")
+        }
+        return parts.joined(separator: " ")
+    }
+
     private var savedVideosSection: some View {
         @Bindable var appSettings = appSettings
         return Section {
@@ -475,10 +476,10 @@ struct SettingsView: View {
             .disabled(offlineLibrary.entries.isEmpty)
             LabeledContent("Total size", value: PleviFormatting.byteCount(offlineLibrary.totalBytesUsed))
             Toggle("Allow cellular downloads", isOn: $appSettings.allowCellularDownloads)
-            Button("Remove Watched", role: .destructive) {
+            Button(isRemovingWatched ? "Removing…" : "Remove Watched", role: .destructive) {
                 isConfirmingRemoveWatched = true
             }
-            .disabled(offlineLibrary.entries.isEmpty)
+            .disabled(offlineLibrary.entries.isEmpty || isRemovingWatched)
             // On the button so the popover points at it — see `OfflineStorageBrowser`.
             .confirmationDialog(
                 "Remove every watched download?",
@@ -487,11 +488,15 @@ struct SettingsView: View {
             ) {
                 Button("Remove Watched", role: .destructive) {
                     Task {
-                        guard let client = authStore.client else { return }
-                        let removed = await offlineLibrary.removeWatched(client: client)
-                        removeWatchedResultMessage = removed == 0
-                            ? "Nothing to remove — no saved video is marked watched on the server."
-                            : "Removed \(removed) watched video\(removed == 1 ? "" : "s")."
+                        // The answer goes to `storageNotice`, whose alert sits on this same screen.
+                        guard let client = authStore.client else {
+                            storageNotice = "Couldn't reach the server, so nothing was removed."
+                            return
+                        }
+                        isRemovingWatched = true
+                        let report = await offlineLibrary.removeWatchedReport(client: client)
+                        isRemovingWatched = false
+                        storageNotice = Self.removeWatchedMessage(report)
                     }
                 }
                 Button("Cancel", role: .cancel) {}

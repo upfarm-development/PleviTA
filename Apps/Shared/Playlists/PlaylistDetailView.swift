@@ -381,7 +381,7 @@ struct PlaylistDetailView: View {
             }
 
             if !isRegularWidth {
-                compactInfoRow(playlist: playlist)
+                compactInfoRow(store: store, playlist: playlist)
             }
 
             if let description = playlist.playlistDescription, !description.isEmpty {
@@ -445,7 +445,7 @@ struct PlaylistDetailView: View {
 
     /// iPhone-only: owner + video count + Subscribed/Custom badges folded onto one line — see `headerDetails`'s own doc comment.
     @ViewBuilder
-    private func compactInfoRow(playlist: Playlist) -> some View {
+    private func compactInfoRow(store: PlaylistDetailStore, playlist: Playlist) -> some View {
         HStack(spacing: 8) {
             if let channelName = playlist.playlistChannel {
                 let content = HStack(spacing: 6) {
@@ -463,8 +463,8 @@ struct PlaylistDetailView: View {
                 }
             }
 
-            if let count = playlist.playlistEntries?.count {
-                Text("· \(count) video\(count == 1 ? "" : "s")")
+            if let countText = videoCountText(store: store) {
+                Text("· \(countText)")
                     .pleviMono()
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
@@ -570,10 +570,21 @@ struct PlaylistDetailView: View {
 
     // MARK: - Mono stats line
 
+    private func videoCountText(store: PlaylistDetailStore) -> String? {
+        guard case .loaded = store.entriesState else { return nil }
+        let onServer = store.downloadedEntries.count
+        let showing = store.downloadedEntries(
+            sortedBy: appSettings.playlistDetailSortField,
+            order: appSettings.playlistDetailSortOrder,
+            hideWatched: appSettings.hideWatched(in: .playlistEntries)
+        ).count
+        return PleviFormatting.videoCountText(onServer: onServer, showing: showing)
+    }
+
     private func playlistStatsLine(store: PlaylistDetailStore, playlist: Playlist) -> String {
         var parts: [String] = []
-        if let count = playlist.playlistEntries?.count {
-            parts.append("\(count) video\(count == 1 ? "" : "s")")
+        if let countText = videoCountText(store: store) {
+            parts.append(countText)
         }
 
         let downloadedVideos = store.entries.compactMap(\.video)

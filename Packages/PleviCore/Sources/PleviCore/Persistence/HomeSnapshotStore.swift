@@ -30,9 +30,7 @@ public struct HomeSnapshotStore: Sendable {
     }
 
     public static var defaultDirectory: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return base.appendingPathComponent("PleviTA", isDirectory: true).appendingPathComponent("HomeSnapshots", isDirectory: true)
+        return StorageLocation.base.appendingPathComponent("PleviTA", isDirectory: true).appendingPathComponent("HomeSnapshots", isDirectory: true)
     }
 
     private func fileURL(scope: String) -> URL {

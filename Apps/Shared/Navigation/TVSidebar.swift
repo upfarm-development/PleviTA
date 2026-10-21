@@ -187,9 +187,16 @@ final class TVMenuCatcherView: UIView, UIGestureRecognizerDelegate {
         guard let window = attachedWindow else { return false }
         let presented = window.rootViewController?.presentedViewController
         let dismissing = presented?.isBeingDismissed == true
-        let nothingFocused = UIFocusSystem.focusSystem(for: window)?.focusedItem == nil
-        let take = dismissing || (nothingFocused && presented == nil)
-        PlaybackLog.shared.log("app", "Menu press: nothingFocused=\(nothingFocused) presented=\(presented != nil) dismissing=\(dismissing) taken=\(take)")
+        let focused = UIFocusSystem.focusSystem(for: window)?.focusedItem
+        let focusedView = focused as? UIView
+        // Focus that has not let go of a menu that is already closing: a view that is no longer in
+        // any window, or is in a different one from the page.
+        let focusIsStale = focusedView.map { $0.window == nil || $0.window !== window } ?? false
+        let take = dismissing || ((focused == nil || focusIsStale) && presented == nil)
+        PlaybackLog.shared.log("app", "Menu press: focused=\(focused.map { String(describing: type(of: $0)) } ?? "none") "
+            + "stale=\(focusIsStale) presented=\(presented != nil) dismissing=\(dismissing) "
+            + "windowIsKey=\(window.isKeyWindow) windows=\(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).count) taken=\(take)",
+            force: true)
         return take
     }
 }

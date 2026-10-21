@@ -33,9 +33,7 @@ public actor ArtworkDiskCache {
 
     /// `…/Application Support/PleviTA/Artwork/<digest of the login URL>`.
     public static func directory(forScope loginURL: String) -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return base
+        return StorageLocation.base
             .appendingPathComponent("PleviTA", isDirectory: true)
             .appendingPathComponent("Artwork", isDirectory: true)
             .appendingPathComponent(ServerScope.digest(of: loginURL), isDirectory: true)
