@@ -50,10 +50,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             Task { await downloader.appDidBecomeActive() }
         }
 
-        // Home's background refresh: iOS decides when to run it, at most now and then, and it only
-        // ever asks again if this schedules a next one. Registered here because registration has to
-        // finish before launch does.
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: HomeBackgroundRefresh.taskIdentifier, using: nil) { task in
+        // Home's background refresh: iOS decides when to run it, at most now and then, and it only ever asks again if this schedules a next one.
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: HomeBackgroundRefresh.taskIdentifier, using: .main) { task in
             MainActor.assumeIsolated { Self.handleHomeRefresh(task) }
         }
         center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { _ in

@@ -134,7 +134,7 @@ struct ChannelsView: View {
         entryRequestedAt = nil
         // A beat after the sidebar lets go, so the focus engine is not mid-update.
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(60))
+            try? await Task.sleep(for: .milliseconds(20))
             focusedChannel = id
         }
     }

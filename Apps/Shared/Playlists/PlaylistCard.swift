@@ -64,7 +64,7 @@ struct PlaylistCard: View {
                 }
                 Spacer(minLength: 4)
             }
-            .pleviMono()
+            .pleviItemMeta()
             .foregroundStyle(metadataColor)
         }
         .frame(maxHeight: .infinity, alignment: .top)

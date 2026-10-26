@@ -138,7 +138,9 @@ struct LoginView: View {
 
     #if os(tvOS)
     private var modeSelector: some View {
-        HStack(spacing: 16) {
+        // The gap has to be wider than a focused capsule's growth (10% of its width, about 25pt
+        // each side for "Username & Password"), or the focused one lands on top of its neighbour.
+        HStack(spacing: 48) {
             ForEach(Mode.allCases) { candidate in
                 Button {
                     mode = candidate

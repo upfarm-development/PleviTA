@@ -55,6 +55,17 @@ struct TVSidebar: View {
             if old == nil { sectionOnEntry = selection }
             if selection != section { selection = section }
         }
+        // Right from the rail has to reach the page even when nothing on it is level with the icon.
+        .onMoveCommand { direction in
+            guard direction == .right else { return }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(80))
+                guard focus.wrappedValue != nil, !isHandingOff else { return }
+                navigation.pageEntryRequest += 1
+                try? await Task.sleep(for: .milliseconds(150))
+                if focus.wrappedValue != nil, !isHandingOff { handOff() }
+            }
+        }
     }
 
     /// Sends focus to the page after a row is chosen.

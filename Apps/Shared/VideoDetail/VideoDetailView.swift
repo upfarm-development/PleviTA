@@ -441,11 +441,11 @@ struct VideoDetailView: View {
 
                     tvOSBottomStack(video: video, store: store)
                 }
+                // Clears the sidebar's rail, which stays on screen here too.
+                .pleviRootHorizontalInset(PleviMetrics.insetTV.horizontal)
                 // Top only, and small.
                 .padding(.top, 24)
             }
-            // Clears the sidebar's rail, which stays on screen here too.
-            .pleviRootHorizontalInset(PleviMetrics.insetTV.horizontal)
             .padding(.top, 20)
             // NO scroll restore here, and that is a decision rather than an omission.
         }

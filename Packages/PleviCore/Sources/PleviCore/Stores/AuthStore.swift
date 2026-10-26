@@ -198,11 +198,21 @@ public final class AuthStore {
         let local = credentialStore.localServerURL()
         let remote = credentialStore.remoteServerURL()
         guard local != nil || remote != nil else { return }
-        let host = url.host?.lowercased()
-        let matchesStoredServer = [local, remote].contains { $0?.host?.lowercased() == host }
+        // Host AND port. Two servers on one machine (`:7000` and `:7050`) share a host, and matching
+        // on the host alone took the new one for the old one: the old local address stayed, won, and
+        // every request after sign-in went to the old server with the new server's token.
+        let matchesStoredServer = [local, remote].contains { stored in
+            guard let stored else { return false }
+            return stored.host?.lowercased() == url.host?.lowercased() && Self.effectivePort(stored) == Self.effectivePort(url)
+        }
         guard !matchesStoredServer else { return }
         credentialStore.setLocalServerURL(nil)
         credentialStore.setRemoteServerURL(nil)
+    }
+
+    /// The port a URL actually connects to: the written one, else the scheme's default.
+    nonisolated private static func effectivePort(_ url: URL) -> Int {
+        url.port ?? (url.scheme?.lowercased() == "https" ? 443 : 80)
     }
 
     public func canReachServer(_ url: URL, timeout: TimeInterval = 8) async -> Bool {
@@ -285,7 +295,7 @@ public final class AuthStore {
             errorMessage = TAError.invalidServerURL.errorDescription
             return
         }
-        let trimmedToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedToken = Self.cleanedToken(token)
         guard !trimmedToken.isEmpty else {
             errorMessage = "Enter a token."
             return
@@ -305,9 +315,27 @@ public final class AuthStore {
             self.client = client
             self.imageLoader = makeImageLoader(client: client)
             await finishLogin(client: client, serverURL: url, existingPing: ping)
+        } catch let error as TAError where error.isUnauthorized {
+            // A refused token at sign-in is not an expired session, which is what the general
+            // wording for the same answer says.
+            errorMessage = "The server didn't accept that token. Copy it again from Tube Archivist (Settings → Application → Integrations)."
         } catch {
             errorMessage = Self.message(for: error)
         }
+    }
+
+    /// What was pasted, reduced to the token itself: no surrounding whitespace or quotes, no line
+    /// breaks or spaces inside it, and no "Token " or "Bearer " in front, which copying an
+    /// Authorization header brings along.
+    nonisolated static func cleanedToken(_ raw: String) -> String {
+        var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        text = text.trimmingCharacters(in: CharacterSet(charactersIn: "\"'`"))
+        for prefix in ["authorization:", "token ", "bearer "] {
+            if text.lowercased().hasPrefix(prefix) {
+                text = String(text.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return text.components(separatedBy: .whitespacesAndNewlines).joined()
     }
 
     public func signOut() async {

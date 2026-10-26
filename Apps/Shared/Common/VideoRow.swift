@@ -60,9 +60,9 @@ struct VideoRow: View {
 
     private var positionFont: Font {
         #if os(tvOS)
-        .system(size: 21, weight: .medium, design: .monospaced)
+        .system(size: 21, weight: .medium).monospacedDigit()
         #else
-        .system(size: 15, weight: .medium, design: .monospaced)
+        .system(size: 15, weight: .medium).monospacedDigit()
         #endif
     }
 
@@ -112,7 +112,7 @@ struct VideoRow: View {
                         .lineLimit(1)
                 }
             }
-            .pleviMono()
+            .pleviItemMeta()
             .foregroundStyle(metadataColor)
         }
         .frame(maxHeight: .infinity, alignment: .top)
@@ -158,7 +158,7 @@ struct VideoRow: View {
                             .lineLimit(1)
                     }
                 }
-                .pleviMono()
+                .pleviItemMeta()
                 .foregroundStyle(metadataColor)
             }
 

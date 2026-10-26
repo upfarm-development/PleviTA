@@ -67,7 +67,7 @@ struct PlaylistListRow: View {
                             .foregroundStyle(palette.accent)
                     }
                 }
-                .pleviMono()
+                .pleviItemMeta()
                 .foregroundStyle(metadataColor)
             }
 

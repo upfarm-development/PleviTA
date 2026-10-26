@@ -30,6 +30,15 @@ extension View {
         #endif
     }
 
+    /// The channel name and date lines under a card: the title's own face and size (`pleviItemTitle()`), regular weight, proportional rather than monospaced.
+    func pleviItemMeta() -> some View {
+        #if os(tvOS)
+        self.font(.system(size: 26, weight: .regular))
+        #else
+        self.font(.system(size: 13, weight: .regular))
+        #endif
+    }
+
     func pleviBody() -> some View {
         #if os(tvOS)
         self.font(.system(size: 20, weight: .regular))
@@ -47,11 +56,12 @@ extension View {
         #endif
     }
 
+    /// Small metadata text: durations, counts, file sizes, positions, times.
     func pleviMono() -> some View {
         #if os(tvOS)
-        self.font(.system(size: 21, weight: .regular, design: .monospaced))
+        self.font(.system(size: 21, weight: .regular)).monospacedDigit()
         #else
-        self.font(.system(size: 11.5, weight: .regular, design: .monospaced))
+        self.font(.system(size: 11.5, weight: .regular)).monospacedDigit()
         #endif
     }
 }

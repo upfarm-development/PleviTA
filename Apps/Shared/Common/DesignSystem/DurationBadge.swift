@@ -10,7 +10,7 @@ struct DurationBadge: View {
     var body: some View {
         if let text {
             Text(text)
-                .font(.system(size: Self.fontSize, weight: .regular, design: .monospaced))
+                .font(.system(size: Self.fontSize, weight: .regular).monospacedDigit())
                 .foregroundStyle(.white)
                 .padding(.horizontal, Self.horizontalPadding)
                 .padding(.vertical, Self.verticalPadding)

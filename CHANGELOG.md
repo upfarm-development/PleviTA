@@ -7,6 +7,79 @@ Two numbers move independently, both set in `Config/Base.xcconfig`:
 `CURRENT_PROJECT_VERSION` is the build, bumped every commit by
 `Scripts/bump_build_number.sh`.
 
+## 1.0.0 (218)
+
+FIXED
+
+- Videos in the custom player no longer fail with "Playback stopped unexpectedly" after the device has been locked or the app left for a while.
+
+## 1.0.0 (217)
+
+FIXED
+
+- On Apple TV, getting from the side menu into a page with one short row is much quicker.
+
+## 1.0.0 (216)
+
+FIXED
+
+- On Apple TV, you can now get from the side menu into the page even when the page has only one short row (a few channels or playlists).
+
+## 1.0.0 (215)
+
+FIXED
+
+- On Apple TV, the first card in Similar Videos is no longer clipped on its left edge when focused.
+
+## 1.0.0 (214)
+
+FIXED
+
+- Signing in to a second server on the same machine but a different port (for example :7000 and :7050) no longer keeps talking to the first one.
+
+## 1.0.0 (213)
+
+FIXED
+
+- On Apple TV, the sign-in method pills no longer overlap when one is focused.
+
+## 1.0.0 (212)
+
+FIXED
+
+- Signing in with a token the server refuses now says so, instead of "Your session has expired".
+- A token pasted with a "Token " prefix, quotes or line breaks is cleaned up before it is sent.
+
+## 1.0.0 (211)
+
+CHANGED
+
+- The whole app now uses one font. The monospaced text on durations, dates, counts, file sizes and times is gone.
+
+## 1.0.0 (210)
+
+CHANGED
+
+- Channel names and dates on video and playlist cards now use the same font as the title, in regular weight.
+
+## 1.0.0 (209)
+
+FIXED
+
+- On iPhone and iPad, Home scrolls the way it did before build 208. The faster stop felt too sticky and has been taken out.
+
+## 1.0.0 (208)
+
+CHANGED
+
+- On iPhone and iPad, Home now stops scrolling sooner after a flick, so scrolling back to the top overshoots less and leaves a smaller gap above the header.
+
+## 1.0.0 (207)
+
+FIXED
+
+- On iPhone and iPad, fixed a crash that happened when iOS woke the app in the background to refresh Home.
+
 ## 1.0.0 (206)
 
 CHANGED

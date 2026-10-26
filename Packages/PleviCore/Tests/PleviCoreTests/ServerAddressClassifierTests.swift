@@ -171,6 +171,23 @@ struct AuthStoreAddressAdoptionTests {
         #expect(credentialStore.localServerURL() == nil)
     }
 
+    @Test("a different server on the same host but another port replaces the previous addresses")
+    func samePortlessHostDifferentPortReplacesAddresses() async throws {
+        let credentialStore = makeCredentialStore()
+        credentialStore.setLocalServerURL(URL(string: "http://192.168.1.50:7000")!)
+        let authStore = AuthStore(
+            appSettings: AppSettings(),
+            credentialStore: credentialStore,
+            urlSession: MockURLProtocol.makeSession()
+        )
+        MockURLProtocol.handler = { self.stubLoginEndpoints($0) }
+
+        await authStore.loginWithToken(serverURLText: "http://192.168.1.50:7050", token: "sometoken")
+
+        // The old :7000 address must not survive to be picked ahead of the server just signed in to.
+        #expect(credentialStore.localServerURL()?.absoluteString == "http://192.168.1.50:7050")
+    }
+
     @Test("restoring the stored session never discards addresses")
     func restoreKeepsAddresses() async throws {
         let credentialStore = makeCredentialStore()
