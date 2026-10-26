@@ -11,10 +11,41 @@ You get the things you'd expect: Home, Channels, Playlists and Search, playback 
 ## What it can do
 
 - **A Continue Watching row that's actually in order.** It sits at the top of Home and puts what you watched most recently first. The order syncs between your devices through iCloud, so what you started on the Apple TV is at the front on your phone. Tube Archivist doesn't record when you watched something, so the app keeps track itself. Videos you only watched in the web page keep their usual place.
+
+<table align="center">
+  <tr>
+    <td valign="middle"><img src="docs/screenshots/home-iphone.jpg" alt="Home on iPhone" width="220"></td>
+    <td valign="middle"><img src="docs/screenshots/home-tv.jpg" alt="Home on Apple TV" width="480"></td>
+  </tr>
+</table>
+
 - **A custom player with AV1 and VP9.** H.264 plays in Apple's own player. When a video is in a format Apple's player can't handle, the app switches to its own. One thing to know: 4K AV1 and VP9 won't play smoothly on current Apple TV hardware, because it can't decode them in hardware. 1080p works fine in testing.
 - **Downloads on iPhone and iPad.** Save videos to watch offline. There's a Downloads screen with the queue and your saved videos, as a grid or a list, with the download speed while something is coming in.
 - **Pin your favourites.** Put channels and playlists you care about on Home.
+
+<table align="center">
+  <tr>
+    <td valign="middle"><img src="docs/screenshots/home-iphone-pinned.jpg" alt="Pinned channels and playlists on iPhone" width="220"></td>
+    <td valign="middle"><img src="docs/screenshots/home-tv-pinned.jpg" alt="Pinned channels and playlists on Apple TV" width="480"></td>
+  </tr>
+</table>
+
 - **A video page with more on it.** What's next, if the video is in a playlist (or several), plus similar videos, the description, file details and comments.
+
+<table align="center">
+  <tr>
+    <td valign="middle"><img src="docs/screenshots/video-iphone.jpg" alt="A video page on iPhone" width="220"></td>
+    <td valign="middle"><img src="docs/screenshots/video-tv.jpg" alt="A video page on Apple TV" width="480"></td>
+  </tr>
+</table>
+
+<table align="center">
+  <tr>
+    <td valign="middle"><img src="docs/screenshots/video-iphone-comments.jpg" alt="Similar videos and comments on iPhone" width="220"></td>
+    <td valign="middle"><img src="docs/screenshots/video-tv-comments.jpg" alt="Similar videos and comments on Apple TV" width="480"></td>
+  </tr>
+</table>
+
 - **SponsorBlock.** It uses the segments your server has already stored, and works online and offline. You choose which kinds to skip: sponsors, self-promotion, intros and outros.
 - **Signing in your way.** Use an API token, a username and password, or the sign-in page of a server that sits behind a login. You can set a local and a remote address, and the app switches between them for you.
 - **Made for slow connections.** Thumbnails, channel art and a copy of Home are kept on the device, so the app opens quickly and still shows pictures when the connection is poor or missing.
