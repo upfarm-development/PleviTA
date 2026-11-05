@@ -50,6 +50,7 @@ struct HomeView: View {
         }
         .background(palette.canvas.ignoresSafeArea())
         .tint(palette.accent)
+        .videoSelectionBar(actions: store.map { videoActions(list: $0) }, allVideos: { selectableVideos })
         #if os(iOS)
         .navigationTitle("Home")
         #endif
@@ -339,7 +340,7 @@ struct HomeView: View {
     private func continueWatchingRowContent(video: Video, store: HomeStore) -> some View {
         VideoRow(
             video: video,
-            layout: .row,
+            layout: .wideRow,
             actions: videoActions(list: store)
         )
     }
@@ -468,9 +469,10 @@ struct HomeView: View {
                             NavigationLink(value: Route.video(video.id)) {
                                 VideoRow(
                                     video: video,
-                                    layout: .row,
+                                    layout: .wideRow,
                                     actions: videoActions(list: store)
                                 )
+                                .padding(.vertical, 8)
                             }
                             .buttonStyle(.plain)
                             .videoActionsContextMenu(video: video, actions: videoActions(list: store))
@@ -535,6 +537,19 @@ struct HomeView: View {
         VideoActions(list: list, coordinator: videoActionsCoordinator, navigate: navigate)
     }
 
+    /// What "Select All" picks: every video on screen, once each — a video can be in both Continue
+    /// watching and Newly added.
+    private var selectableVideos: [Video] {
+        guard let store else { return [] }
+        var seen: Set<String> = []
+        var videos: [Video] = []
+        if case .loaded(let items) = store.continueWatching {
+            for video in items where seen.insert(video.id).inserted { videos.append(video) }
+        }
+        for video in store.gridItems where seen.insert(video.id).inserted { videos.append(video) }
+        return videos
+    }
+
     // MARK: - Section header
 
     /// Shared by both sections.
@@ -572,15 +587,12 @@ struct HomeView: View {
                 .pleviScreenTitle()
                 .foregroundStyle(palette.ink)
             Spacer(minLength: 8)
-            #if os(iOS)
-            OfflineDownloadsButton()
-                .modifier(HeaderControlChip(palette: palette))
-            #endif
+            // Watched, sort, then the overflow menu — the order a channel and a playlist use (`ChannelDetailView`/`PlaylistDetailView`).
             WatchedFilterToggleButton(hideWatched: appSettings.watchedFilterBinding(.home))
                 .modifier(HeaderControlChip(palette: palette))
             SortMenuButton(field: $appSettings.homeSortField, order: $appSettings.homeSortOrder, fieldTitle: \.title)
                 .modifier(HeaderControlChip(palette: palette))
-            ViewStyleToggleButton(viewStyle: $appSettings.homeViewStyle)
+            HomeOverflowMenu(viewStyle: $appSettings.homeViewStyle)
                 .modifier(HeaderControlChip(palette: palette))
         }
         .pleviRootHorizontalInset(horizontalInset)
@@ -670,3 +682,61 @@ struct HomeView: View {
     .environment(VideoActionsCoordinator())
     .environment(PinnedItems(scope: "", cloud: nil))
 }
+
+#if os(iOS)
+/// Home's "…": Downloads, the grid/list switch and Select Videos.
+private struct HomeOverflowMenu: View {
+    @Binding var viewStyle: ViewStyle
+    @Environment(OfflineLibrary.self) private var offlineLibrary
+    @Environment(VideoSelection.self) private var selection: VideoSelection?
+    @State private var isShowingDownloads = false
+
+    private var unfinished: [OfflineLibrary.Entry] {
+        offlineLibrary.entries.filter { $0.record.state != .complete }
+    }
+    private var hasFailure: Bool { unfinished.contains { $0.record.state == .failed } }
+
+    var body: some View {
+        Menu {
+            if !offlineLibrary.entries.isEmpty {
+                Button {
+                    isShowingDownloads = true
+                } label: {
+                    Label(unfinished.count > 1 ? "Downloads (\(unfinished.count))" : "Downloads",
+                          systemImage: hasFailure ? "exclamationmark.arrow.circlepath" : "arrow.down.circle")
+                }
+            }
+            Button {
+                viewStyle = (viewStyle == .grid) ? .list : .grid
+            } label: {
+                Label(viewStyle == .grid ? "Show as List" : "Show as Grid",
+                      systemImage: viewStyle == .grid ? "list.bullet" : "square.grid.2x2")
+            }
+            Button {
+                if selection?.isActive == true { selection?.end() } else { selection?.begin() }
+            } label: {
+                Label(selection?.isActive == true ? "Stop Selecting" : "Select Videos",
+                      systemImage: "checkmark.circle")
+            }
+        } label: {
+            // The whole 40pt circle is the label, not just the glyph: three small dots are a
+            // tiny target, and a tap anywhere else on the chip missed the menu.
+            Image(systemName: "ellipsis")
+                .frame(width: 40, height: 40)
+                .contentShape(Circle())
+                .overlay(alignment: .topTrailing) {
+                    if !unfinished.isEmpty {
+                        Circle()
+                            .fill(hasFailure ? Color.red : Color.accentColor)
+                            .frame(width: 9, height: 9)
+                            .offset(x: -5, y: 5)
+                    }
+                }
+        }
+        .accessibilityLabel("More")
+        .sheet(isPresented: $isShowingDownloads) {
+            OfflineDownloadsSheet()
+        }
+    }
+}
+#endif

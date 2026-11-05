@@ -631,6 +631,8 @@ class MockHandler(BaseHTTPRequestHandler):
             self._handle_set_watched()
         elif path.startswith("/api/video/") and path.endswith("/progress/"):
             self._handle_set_progress(self._video_id_from(path, suffix="/progress/"))
+        elif path == "/api/download/":
+            self._handle_add_to_download_queue()
         elif path.startswith("/api/download/") and path.endswith("/"):
             self._handle_set_download_status(path[len("/api/download/"):-1])
         elif path.startswith("/api/playlist/") and path.endswith("/"):
@@ -1096,6 +1098,28 @@ class MockHandler(BaseHTTPRequestHandler):
                     entry for entry in playlist["playlist_entries"] if entry["youtube_id"] != youtube_id
                 ]
         self._send_no_content()
+
+    def _handle_add_to_download_queue(self) -> None:
+        """POST /api/download/ {"data": [{"youtube_id", "status"}]} — mirrors TA's list view.
+
+        Only "pending" entries are queued, and an id already in the library is skipped, as
+        the real extraction task does ("skipped adding already indexed video to download").
+        """
+        if self._require_auth() is None:
+            return
+        body = self._read_json_body()
+        items = body.get("data")
+        if not isinstance(items, list):
+            self._send_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid data"})
+            return
+        with _state_lock:
+            in_library = {v["youtube_id"] for v in VIDEOS}
+            for item in items:
+                youtube_id = item.get("youtube_id")
+                if item.get("status") == "pending" and youtube_id and youtube_id not in in_library:
+                    DOWNLOAD_QUEUE.add(youtube_id)
+                    DOWNLOAD_STATUS[youtube_id] = "pending"
+        self._send_json(HTTPStatus.OK, {"message": "add to queue task started"})
 
     def _handle_set_download_status(self, youtube_id: str) -> None:
         """POST /api/download/<id>/ — mirrors TA's DownloadApiView.post.

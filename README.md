@@ -50,6 +50,10 @@ You get the things you'd expect: Home, Channels, Playlists and Search, playback 
 - **Signing in your way.** Use an API token, a username and password, or the sign-in page of a server that sits behind a login. You can set a local and a remote address, and the app switches between them for you.
 - **Made for slow connections.** Thumbnails, channel art and a copy of Home are kept on the device, so the app opens quickly and still shows pictures when the connection is poor or missing.
 
+<p align="center">
+  <a href="https://testflight.apple.com/join/bBVGzREd"><img src="docs/testflight-button.svg" alt="Join the beta on TestFlight" width="240"></a>
+</p>
+
 ## Privacy
 
 You can check all of this in the source.

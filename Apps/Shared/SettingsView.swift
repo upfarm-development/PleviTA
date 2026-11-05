@@ -219,6 +219,12 @@ struct SettingsView: View {
                 LabeledContent("Connected via", value: connectionSourceLabel)
             }
 
+            NavigationLink {
+                SettingsGroupScreen(title: "Download again", palette: palette) { downloadAgainSection }
+            } label: {
+                LabeledContent("Download again", value: downloadAgainSummary)
+            }
+
             Button("Sign Out", role: .destructive) {
                 isConfirmingSignOut = true
             }
@@ -301,6 +307,10 @@ struct SettingsView: View {
                 Text("Newest first").tag(HomeSortOrder.desc)
                 Text("Oldest first").tag(HomeSortOrder.asc)
             }
+            SettingsPicker("Continue watching", selection: $appSettings.continueWatchingStyle) {
+                Text("Carousel").tag(ContinueWatchingStyle.carousel)
+                Text("List").tag(ContinueWatchingStyle.list)
+            }
             SettingsPicker("Video type", selection: $appSettings.videoTypeFilter) {
                 Text("All").tag(VideoTypeFilter?.none)
                 Text("Videos").tag(VideoTypeFilter?.some(.videos))
@@ -382,6 +392,36 @@ struct SettingsView: View {
     }
     #endif
 
+    /// What "Delete All and Download Again" leaves alone. Nothing is skipped until a codec is ticked.
+    private var downloadAgainSection: some View {
+        Section {
+            ForEach(VideoCodec.allCases, id: \.self) { codec in
+                Toggle(codec.displayName, isOn: skipCodecBinding(codec))
+            }
+        } header: {
+            Text("Skip videos already in")
+        } footer: {
+            Text("For channels and playlists. A single video is always downloaded again.")
+        }
+    }
+
+    private var downloadAgainSummary: String {
+        let skipped = VideoCodec.allCases.filter(appSettings.redownloadSkipCodecs.contains)
+        return skipped.isEmpty ? "Nothing skipped" : "Skips " + skipped.map(\.displayName).joined(separator: ", ")
+    }
+
+    /// Reassigns the whole set for the same reason `sponsorCategoryBinding` does.
+    private func skipCodecBinding(_ codec: VideoCodec) -> Binding<Bool> {
+        Binding(
+            get: { appSettings.redownloadSkipCodecs.contains(codec) },
+            set: { isOn in
+                var updated = appSettings.redownloadSkipCodecs
+                if isOn { updated.insert(codec) } else { updated.remove(codec) }
+                appSettings.redownloadSkipCodecs = updated
+            }
+        )
+    }
+
     /// Other services the app can use. One row per service, each opening its own screen of options.
     private var integrationsSection: some View {
         Section {
@@ -424,11 +464,6 @@ struct SettingsView: View {
                 Text("Ask").tag(ResumeBehavior.ask)
             }
             Toggle("Skip watched videos", isOn: $appSettings.playlistNavSkipWatched)
-            // Continue Watching's two settings, moved here from the old Home section at the user's request.
-            SettingsPicker("Continue watching", selection: $appSettings.continueWatchingStyle) {
-                Text("Carousel").tag(ContinueWatchingStyle.carousel)
-                Text("List").tag(ContinueWatchingStyle.list)
-            }
             Toggle("Recently played first", isOn: $appSettings.recentlyPlayedFirst)
             SettingsPicker("Compatibility player", selection: $appSettings.fallbackPlayerMode) {
                 Text("Automatic").tag(FallbackPlayerMode.automatic)

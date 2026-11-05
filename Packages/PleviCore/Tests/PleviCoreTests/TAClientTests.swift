@@ -233,6 +233,151 @@ struct TAClientTests {
 
     // MARK: - HTML bodies that are not a proxy gate
 
+    private final class RequestLog: @unchecked Sendable {
+        private let lock = NSLock()
+        private var entries: [String] = []
+        func add(_ entry: String) { lock.lock(); entries.append(entry); lock.unlock() }
+        var all: [String] { lock.lock(); defer { lock.unlock() }; return entries }
+    }
+
+    @Test("deleteVideos deletes each video, and ignores each one after its delete when asked")
+    func deleteVideosIgnoring() async throws {
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = makeClient(serverURL: makeServerURL(), credentialStore: credentialStore)
+        let log = RequestLog()
+        MockURLProtocol.handler = { request in
+            log.add("\(request.httpMethod ?? "") \(request.url?.absoluteString.components(separatedBy: "/api/").last ?? "")")
+            return .init(statusCode: 204)
+        }
+
+        let result = await client.deleteVideos(ids: ["a", "b"], ignoring: true)
+
+        #expect(log.all == ["DELETE video/a/", "POST download/a/", "DELETE video/b/", "POST download/b/"])
+        #expect(result.deleted == ["a", "b"])
+        #expect(result.ignoreFailures == 0)
+    }
+
+    @Test("deleteVideos without ignoring sends only deletes, and stops at the first real error")
+    func deleteVideosStopsOnError() async throws {
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = makeClient(serverURL: makeServerURL(), credentialStore: credentialStore)
+        let log = RequestLog()
+        MockURLProtocol.handler = { request in
+            log.add("\(request.httpMethod ?? "") \(request.url?.absoluteString.components(separatedBy: "/api/").last ?? "")")
+            if request.url?.absoluteString.hasSuffix("video/b/") == true {
+                return .init(statusCode: 500, headers: ["Content-Type": "application/json"], body: Data("{}".utf8))
+            }
+            return .init(statusCode: 204)
+        }
+
+        let result = await client.deleteVideos(ids: ["a", "b", "c"], ignoring: false)
+
+        #expect(log.all == ["DELETE video/a/", "DELETE video/b/"])
+        #expect(result.deleted == ["a"])
+        #expect(result.notAttempted == ["b", "c"])
+        #expect(result.stopError != nil)
+    }
+
+    @Test("a failed ignore after a successful delete is counted, not fatal")
+    func deleteVideosCountsIgnoreFailures() async throws {
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = makeClient(serverURL: makeServerURL(), credentialStore: credentialStore)
+        MockURLProtocol.handler = { request in
+            if request.httpMethod == "POST" {
+                return .init(statusCode: 500, headers: ["Content-Type": "application/json"], body: Data("{}".utf8))
+            }
+            return .init(statusCode: 204)
+        }
+
+        let result = await client.deleteVideos(ids: ["a", "b"], ignoring: true)
+
+        #expect(result.deleted == ["a", "b"])
+        #expect(result.ignoreFailures == 2)
+        #expect(result.stopError == nil)
+    }
+
+    @Test("redownload deletes every video first, then queues them in one request")
+    func redownloadDeletesThenQueuesOnce() async throws {
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = makeClient(serverURL: makeServerURL(), credentialStore: credentialStore)
+        let log = RequestLog()
+        MockURLProtocol.handler = { request in
+            log.add("\(request.httpMethod ?? "") \(request.url?.absoluteString.components(separatedBy: "/api/").last ?? "")")
+            return .init(statusCode: 204)
+        }
+
+        let result = await client.redownload(videoIds: ["a", "b", "c"])
+
+        #expect(log.all == ["DELETE video/a/", "DELETE video/b/", "DELETE video/c/", "POST download/"])
+        #expect(result.deleted == ["a", "b", "c"])
+        #expect(result.queued)
+        #expect(result.notAttempted.isEmpty)
+        #expect(result.stopError == nil)
+    }
+
+    @Test("redownload treats a video that is already gone as deleted")
+    func redownloadQueuesAnAlreadyDeletedVideo() async throws {
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = makeClient(serverURL: makeServerURL(), credentialStore: credentialStore)
+        MockURLProtocol.handler = { request in
+            if request.httpMethod == "DELETE", request.url?.absoluteString.hasSuffix("video/a/") == true {
+                return .init(statusCode: 404, headers: ["Content-Type": "application/json"], body: Data("{}".utf8))
+            }
+            return .init(statusCode: 204)
+        }
+
+        let result = await client.redownload(videoIds: ["a", "b"])
+
+        #expect(result.deleted == ["a", "b"])
+        #expect(result.queued)
+    }
+
+    @Test("redownload stops at the first real error but still queues what was deleted")
+    func redownloadStopsButQueuesDeleted() async throws {
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = makeClient(serverURL: makeServerURL(), credentialStore: credentialStore)
+        let log = RequestLog()
+        MockURLProtocol.handler = { request in
+            log.add("\(request.httpMethod ?? "") \(request.url?.absoluteString.components(separatedBy: "/api/").last ?? "")")
+            if request.httpMethod == "DELETE", request.url?.absoluteString.hasSuffix("video/b/") == true {
+                return .init(statusCode: 500, headers: ["Content-Type": "application/json"], body: Data("{}".utf8))
+            }
+            return .init(statusCode: 204)
+        }
+
+        let result = await client.redownload(videoIds: ["a", "b", "c"])
+
+        #expect(log.all == ["DELETE video/a/", "DELETE video/b/", "POST download/"])
+        #expect(result.deleted == ["a"])
+        #expect(result.notAttempted == ["b", "c"])
+        #expect(result.stopError != nil)
+        #expect(result.queued)
+    }
+
+    @Test("redownload with nothing deleted sends no queue request")
+    func redownloadWithNothingDeletedDoesNotQueue() async throws {
+        let credentialStore = InMemoryCredentialStore()
+        credentialStore.setToken("sometoken")
+        let client = makeClient(serverURL: makeServerURL(), credentialStore: credentialStore)
+        let log = RequestLog()
+        MockURLProtocol.handler = { request in
+            log.add(request.httpMethod ?? "")
+            return .init(statusCode: 500, headers: ["Content-Type": "application/json"], body: Data("{}".utf8))
+        }
+
+        let result = await client.redownload(videoIds: ["a"])
+
+        #expect(log.all == ["DELETE"])
+        #expect(result.deleted.isEmpty)
+        #expect(!result.queued)
+    }
+
     @Test("an HTML 404 is Not Found, not a proxy gate")
     func htmlNotFoundIsNotAProxyGate() async throws {
         let credentialStore = InMemoryCredentialStore()

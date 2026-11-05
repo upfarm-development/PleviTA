@@ -24,6 +24,17 @@ final class PlaybackSession {
     /// (if fast) VideoToolbox call, and the answer only depends on the device, never the file.
     private static let hardwareAV1 = VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1)
 
+    /// Auto-play carrying the live controller on to another video.
+    func handOff(to videoId: String) {
+        self.videoId = videoId
+        guard let controller else { return }
+        controller.isHandingOff = true
+        Task { @MainActor [weak controller] in
+            try? await Task.sleep(for: .seconds(3))
+            controller?.isHandingOff = false
+        }
+    }
+
     /// The controller for `videoId`, creating one if this is a different video from whatever was loaded before.
     func controller(
         for videoId: String,

@@ -40,6 +40,19 @@ public enum VideoFileFacts {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
+    /// `"H.264 · 1080p"` for the confirmation that replaces the file, using the codec's proper
+    /// name when it is a known one and what the server sent otherwise. Nil when the server sent
+    /// no video stream.
+    public static func currentFormat(_ video: Video) -> String? {
+        guard let stream = stream(video, type: "video") else { return nil }
+        var parts: [String] = []
+        if let codec = stream.codec, !codec.isEmpty {
+            parts.append(VideoCodec(streamCodec: codec)?.displayName ?? codec)
+        }
+        if let height = stream.height, height > 0 { parts.append("\(height)p") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     private static func stream(_ video: Video, type: String) -> VideoStream? {
         video.streams?.first { $0.type == type }
     }

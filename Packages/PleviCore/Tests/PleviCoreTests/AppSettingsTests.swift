@@ -81,6 +81,15 @@ struct AppSettingsTests {
         #expect(AppSettings(defaults: defaults).sponsorBlockCategories == [.sponsor, .intro])
     }
 
+    @Test("redownloadSkipCodecs starts empty, and round-trips")
+    func redownloadSkipCodecsPersists() {
+        let defaults = makeDefaults(#function)
+        let first = AppSettings(defaults: defaults)
+        #expect(first.redownloadSkipCodecs.isEmpty)
+        first.redownloadSkipCodecs = [.av1, .vp9]
+        #expect(AppSettings(defaults: defaults).redownloadSkipCodecs == [.av1, .vp9])
+    }
+
     @Test("every category switched off survives a relaunch instead of reverting to the default")
     func sponsorBlockCategoriesEmptySurvives() {
         // The distinction the nil-check in `init` carries: "never written" takes the default

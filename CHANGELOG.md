@@ -7,6 +7,111 @@ Two numbers move independently, both set in `Config/Base.xcconfig`:
 `CURRENT_PROJECT_VERSION` is the build, bumped every commit by
 `Scripts/bump_build_number.sh`.
 
+## 1.0.0 (231)
+
+CHANGED
+
+- Playlist page: the Continue button sits below the description and opens the first unwatched video in the playlist's sort order. It is there from the start, so the page no longer shifts when the videos load.
+
+## 1.0.0 (230)
+
+CHANGED
+
+- The channel page's list view matches Home's: plain rows with dividers, no white card around them.
+
+## 1.0.0 (229)
+
+FIXED
+
+- The "…" menu on Home opens on the first tap, anywhere on its button.
+
+## 1.0.0 (228)
+
+ADDED
+
+- Channel page on iPhone and iPad: switch between grid and list from the "…" menu.
+
+CHANGED
+
+- Home's list view uses the same larger rows as a playlist's.
+
+## 1.0.0 (227)
+
+CHANGED
+
+- Playlist List view on iPad shows one video per row, with a larger thumbnail.
+
+## 1.0.0 (226)
+
+FIXED
+
+- The playlist page on iPad now uses the full width of the screen.
+
+## 1.0.0 (225)
+
+CHANGED
+
+- Playlist page on iPhone and iPad redesigned: a compact header with a "Continue · #N" button that opens the next unwatched video, and bigger thumbnails with the index, duration and watched mark on them.
+- Videos in a playlist show as Large cards or a List, chosen from the "…" menu. On iPad the header sits in a side column.
+- The channel name is left off playlist rows when it is the playlist's own owner.
+
+FIXED
+
+- The numbers on a playlist's videos now match their place in the playlist, whatever the sort.
+
+## 1.0.0 (224)
+
+FIXED
+
+- Auto-play next video now works: when a video ends, the next one in the playlist shown on its page plays, in that playlist's order. Swipe to another playlist and that is the one it follows.
+
+## 1.0.0 (223)
+
+CHANGED
+
+- On Home, Downloads, the grid/list switch and Select Videos are in a "…" menu, so the "Home" title is no longer cut off.
+- Settings: "Continue watching" style moved from Playback to Browsing.
+
+## 1.0.0 (222)
+
+ADDED
+
+- "Select Videos" on iPhone and iPad, on Home and in a channel or playlist: pick several videos, then mark them watched, add them to a playlist, save them, delete them or delete and download them again.
+
+CHANGED
+
+- Delete and Download Again on a selection leaves out videos already in a codec chosen under Settings > Server > Download again.
+
+## 1.0.0 (221)
+
+ADDED
+
+- Settings > Server > Download again: pick codecs (H.264, H.265, VP9, AV1) that "Delete All and Download Again" on a channel or playlist leaves alone.
+
+CHANGED
+
+- Deleting a single video to download it again now shows its current codec and resolution.
+
+## 1.0.0 (220)
+
+ADDED
+
+- "Delete All and Download Again" in the menu on a channel or playlist: deletes all its videos and puts them back on the Tube Archivist download queue.
+
+CHANGED
+
+- The channel and playlist menus are split into "In the app" and "On the server".
+
+## 1.0.0 (219)
+
+ADDED
+
+- "Delete and Download Again" in the video menu: deletes the video and puts it back on the Tube Archivist download queue, so it downloads again in the current format.
+
+CHANGED
+
+- The video menu is split into "In the app" and "On the server", so it is clear which actions change your server.
+
 ## 1.0.0 (218)
 
 FIXED

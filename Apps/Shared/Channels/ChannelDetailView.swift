@@ -46,6 +46,10 @@ struct ChannelDetailView: View {
 
     @State private var selectedTab: ChannelSubTab = .videos
     @State private var isConfirmingMarkAllWatched = false
+    @State private var pendingRedownload: BulkRedownloadPlan?
+    #if os(iOS)
+    @Environment(VideoSelection.self) private var selection: VideoSelection?
+    #endif
     /// Set when `RemoteImage` reports the banner path (a real, non-nil URL Tube Archivist sent) actually failed to load.
     @State private var bannerLoadFailed = false
 
@@ -61,6 +65,13 @@ struct ChannelDetailView: View {
             }
         }
         .background(palette.canvas.ignoresSafeArea())
+        #if os(iOS)
+        // Picking videos works on the open tab's own grid — the Playlists tab has none.
+        .videoSelectionBar(
+            actions: currentTabGridStore(store).map { videoActions(list: $0) },
+            allVideos: { currentTabGridStore(store)?.items ?? [] }
+        )
+        #endif
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -77,29 +88,56 @@ struct ChannelDetailView: View {
                 SortMenuButton(field: $appSettings.channelVideoSortField, order: $appSettings.channelVideoSortOrder, fieldTitle: \.title)
             }
             ToolbarItem(placement: .topBarTrailing) {
+                @Bindable var appSettings = appSettings
                 Menu {
-                    if let channel = store?.channel {
-                        PinToHomeMenuItem(target: .channel(channel))
-                        Divider()
-                    }
-                    Button {
-                        isConfirmingMarkAllWatched = true
-                    } label: {
-                        Label("Mark All Watched", systemImage: "checkmark.circle")
-                    }
-                    Button {
-                        Task {
-                            await store?.loadHeader()
-                            await loadSelectedTab(store: store)
+                    // Pin to Home is left out entirely, not shown disabled, while the channel is
+                    // still loading; the menu is still usable for Refresh in the meantime.
+                    Section("In the app") {
+                        if selectedTab != .playlists {
+                            Picker("Layout", selection: $appSettings.channelDetailViewStyle) {
+                                Label("Grid", systemImage: "square.grid.2x2").tag(ViewStyle.grid)
+                                Label("List", systemImage: "list.bullet").tag(ViewStyle.list)
+                            }
+                            .pickerStyle(.inline)
                         }
-                    } label: {
-                        Label("Refresh Channel", systemImage: "arrow.clockwise")
-                    }
-                    if selectedTab != .playlists {
+                        if let channel = store?.channel {
+                            PinToHomeMenuItem(target: .channel(channel))
+                        }
+                        if selectedTab != .playlists {
+                            Button {
+                                selection?.begin()
+                            } label: {
+                                Label("Select Videos", systemImage: "checkmark.circle")
+                            }
+                        }
                         Button {
-                            Task { await prepareSaveAll(store: store) }
+                            Task {
+                                await store?.loadHeader()
+                                await loadSelectedTab(store: store)
+                            }
                         } label: {
-                            Label("Save All to iPhone", systemImage: "arrow.down.circle")
+                            Label("Refresh Channel", systemImage: "arrow.clockwise")
+                        }
+                        if selectedTab != .playlists {
+                            Button {
+                                Task { await prepareSaveAll(store: store) }
+                            } label: {
+                                Label("Save All to iPhone", systemImage: "arrow.down.circle")
+                            }
+                        }
+                    }
+
+                    Section("On the server") {
+                        Button {
+                            isConfirmingMarkAllWatched = true
+                        } label: {
+                            Label("Mark All Watched", systemImage: "checkmark.circle")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            Task { await prepareRedownloadAll(store: store) }
+                        } label: {
+                            Label("Delete All and Download Again", systemImage: "arrow.triangle.2.circlepath")
                         }
                     }
                 } label: {
@@ -117,6 +155,9 @@ struct ChannelDetailView: View {
                 .saveAllConfirmation($pendingSaveAll) { plan in
                     Task { await performSaveAll(plan) }
                 }
+                .bulkRedownloadConfirmation($pendingRedownload) { plan in
+                    Task { await videoActionsCoordinator.performBulkRedownload(plan) }
+                }
             }
         }
         #endif
@@ -129,6 +170,9 @@ struct ChannelDetailView: View {
             isPresented: $isConfirmingMarkAllWatched
         ) {
             if let store { Task { await store.markAllWatched() } }
+        }
+        .bulkRedownloadConfirmation($pendingRedownload) { plan in
+            Task { await videoActionsCoordinator.performBulkRedownload(plan) }
         }
         #endif
         #if os(iOS)
@@ -225,6 +269,18 @@ struct ChannelDetailView: View {
             : "Saving \(saved) video\(saved == 1 ? "" : "s") to this iPhone."
     }
     #endif
+
+    /// Finds every video in this channel, whatever its type or watched state, and asks before
+    /// deleting them and queueing them again.
+    private func prepareRedownloadAll(store: ChannelDetailStore?) async {
+        guard let client = authStore.client else { return }
+        let id = channelId
+        pendingRedownload = await videoActionsCoordinator.prepareBulkRedownload(
+            noun: "channel", name: store?.channel?.channelName, skipping: appSettings.redownloadSkipCodecs
+        ) {
+            try await client.allVideos(matching: VideoListQuery(channel: id))
+        }
+    }
 
     @ViewBuilder
     private func content(store: ChannelDetailStore) -> some View {
@@ -596,22 +652,31 @@ struct ChannelDetailView: View {
     /// refreshing it are not about which sub-tab is open, unlike the sort beside it.
     private var tvMoreMenu: some View {
         Menu {
-            if let channel = store?.channel {
-                PinToHomeMenuItem(target: .channel(channel))
-                Divider()
-            }
-            Button {
-                isConfirmingMarkAllWatched = true
-            } label: {
-                Label("Mark All Watched", systemImage: "checkmark.circle")
-            }
-            Button {
-                Task {
-                    await store?.loadHeader()
-                    await loadSelectedTab(store: store)
+            Section("In the app") {
+                if let channel = store?.channel {
+                    PinToHomeMenuItem(target: .channel(channel))
                 }
-            } label: {
-                Label("Refresh Channel", systemImage: "arrow.clockwise")
+                Button {
+                    Task {
+                        await store?.loadHeader()
+                        await loadSelectedTab(store: store)
+                    }
+                } label: {
+                    Label("Refresh Channel", systemImage: "arrow.clockwise")
+                }
+            }
+            Section("On the server") {
+                Button {
+                    isConfirmingMarkAllWatched = true
+                } label: {
+                    Label("Mark All Watched", systemImage: "checkmark.circle")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    Task { await prepareRedownloadAll(store: store) }
+                } label: {
+                    Label("Delete All and Download Again", systemImage: "arrow.triangle.2.circlepath")
+                }
             }
         } label: {
             Text("More")
@@ -656,29 +721,7 @@ struct ChannelDetailView: View {
         if gridStore.items.isEmpty {
             emptyGridState(gridStore: gridStore)
         } else {
-            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 20) {
-                ForEach(gridStore.items) { video in
-                    // A `Button` rather than `NavigationLink(value:)` so the id can be noted
-                    // on the way out — `refreshLastOpenedVideo` uses it to bring one row up to
-                    // date on the way back instead of reloading the grid.
-                    Button {
-                        lastOpenedVideoId = video.id
-                        navigate(.video(video.id))
-                    } label: {
-                        VideoRow(
-                            video: video,
-                            layout: .card,
-                            actions: videoActions(list: gridStore)
-                        )
-                    }
-                    .pleviSelectableStyle()
-                    .videoActionsContextMenu(video: video, actions: videoActions(list: gridStore))
-                    .task {
-                        await gridStore.loadNextPageIfNeeded(currentItem: video)
-                    }
-                }
-            }
-            .pleviRootHorizontalInset(horizontalInset)
+            videoLayout(gridStore: gridStore)
 
             if gridStore.isLoadingNextPage {
                 ProgressView()
@@ -692,6 +735,75 @@ struct ChannelDetailView: View {
                     .pleviRootHorizontalInset(horizontalInset)
             }
         }
+    }
+
+    /// The videos as the grid of cards, or — on iPhone and iPad, when chosen from the "…" menu —
+    /// as plain rows with dividers, the same list Home shows. The list leaves the channel's own
+    /// name off each row, which would repeat down the whole page.
+    @ViewBuilder
+    private func videoLayout(gridStore: ChannelVideoGridStore) -> some View {
+        #if os(iOS)
+        if appSettings.channelDetailViewStyle == .list {
+            let videos = gridStore.items
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
+                    Button {
+                        lastOpenedVideoId = video.id
+                        navigate(.video(video.id))
+                    } label: {
+                        VideoRow(
+                            video: video,
+                            layout: .wideRow,
+                            ownerName: store?.channel?.channelName,
+                            actions: videoActions(list: gridStore)
+                        )
+                        .padding(.vertical, 8)
+                    }
+                    .pleviSelectableStyle()
+                    .videoActionsContextMenu(video: video, actions: videoActions(list: gridStore))
+                    .task {
+                        await gridStore.loadNextPageIfNeeded(currentItem: video)
+                    }
+                    if index < videos.count - 1 {
+                        Divider()
+                            .overlay(palette.secondary.opacity(0.25))
+                    }
+                }
+            }
+            .pleviRootHorizontalInset(horizontalInset)
+        } else {
+            videoCardGrid(gridStore: gridStore)
+        }
+        #else
+        videoCardGrid(gridStore: gridStore)
+        #endif
+    }
+
+    @ViewBuilder
+    private func videoCardGrid(gridStore: ChannelVideoGridStore) -> some View {
+        LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 20) {
+            ForEach(gridStore.items) { video in
+                // A `Button` rather than `NavigationLink(value:)` so the id can be noted
+                // on the way out — `refreshLastOpenedVideo` uses it to bring one row up to
+                // date on the way back instead of reloading the grid.
+                Button {
+                    lastOpenedVideoId = video.id
+                    navigate(.video(video.id))
+                } label: {
+                    VideoRow(
+                        video: video,
+                        layout: .card,
+                        actions: videoActions(list: gridStore)
+                    )
+                }
+                .pleviSelectableStyle()
+                .videoActionsContextMenu(video: video, actions: videoActions(list: gridStore))
+                .task {
+                    await gridStore.loadNextPageIfNeeded(currentItem: video)
+                }
+            }
+        }
+        .pleviRootHorizontalInset(horizontalInset)
     }
 
     private func videoActions(list: any VideoMutating) -> VideoActions {

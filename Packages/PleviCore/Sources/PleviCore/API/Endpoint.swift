@@ -144,6 +144,13 @@ extension Endpoint {
     static func ignoreDownload(id: String) -> Endpoint {
         setDownloadStatus(id: id, status: "ignore-force")
     }
+
+    /// Puts a video on the download queue as `pending`. No `autostart`, so nothing is
+    /// downloaded until the user starts the queue in Tube Archivist.
+    static func addToDownloadQueue(ids: [String]) -> Endpoint {
+        Endpoint(path: "download/", method: .post,
+                 body: jsonBody(DownloadQueueRequestBody(data: ids.map { .init(youtubeId: $0, status: "pending") })))
+    }
 }
 
 // MARK: - Channels

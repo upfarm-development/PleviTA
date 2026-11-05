@@ -26,6 +26,10 @@ struct PlaylistDetailView: View {
     /// than reloading the list — see `refreshLastOpenedVideo`.
     @State private var lastOpenedVideoId: String?
     @State private var isConfirmingMarkAllWatched = false
+    @State private var pendingRedownload: BulkRedownloadPlan?
+    #if os(iOS)
+    @Environment(VideoSelection.self) private var selection: VideoSelection?
+    #endif
 
     private var palette: PleviPalette { PleviTheme.palette(for: colorScheme) }
 
@@ -39,6 +43,10 @@ struct PlaylistDetailView: View {
                     .background(palette.canvas)
             }
         }
+        .videoSelectionBar(
+            actions: store.map { videoActions(list: $0) },
+            allVideos: { store?.downloadedEntries.compactMap(\.video) ?? [] }
+        )
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -54,25 +62,48 @@ struct PlaylistDetailView: View {
                 SortMenuButton(field: $appSettings.playlistDetailSortField, order: $appSettings.playlistDetailSortOrder, fieldTitle: \.menuTitle)
             }
             ToolbarItem(placement: .topBarTrailing) {
+                @Bindable var appSettings = appSettings
                 Menu {
-                    if let playlist = store?.playlist {
-                        PinToHomeMenuItem(target: .playlist(playlist))
+                    // Pin to Home is left out entirely, not shown disabled, while the playlist is
+                    // still loading.
+                    Section("In the app") {
+                        Picker("Layout", selection: $appSettings.playlistDetailViewStyle) {
+                            Label("Large", systemImage: "rectangle.grid.1x2").tag(ViewStyle.grid)
+                            Label("List", systemImage: "list.bullet").tag(ViewStyle.list)
+                        }
+                        .pickerStyle(.inline)
+                        if let playlist = store?.playlist {
+                            PinToHomeMenuItem(target: .playlist(playlist))
+                        }
+                        Button {
+                            selection?.begin()
+                        } label: {
+                            Label("Select Videos", systemImage: "checkmark.circle")
+                        }
+                        Button {
+                            Task { await store?.load() }
+                        } label: {
+                            Label("Refresh Playlist", systemImage: "arrow.clockwise")
+                        }
+                        Button {
+                            Task { await prepareSaveAll(store: store) }
+                        } label: {
+                            Label("Save All to iPhone", systemImage: "arrow.down.circle")
+                        }
+                    }
+
+                    Section("On the server") {
+                        Button {
+                            isConfirmingMarkAllWatched = true
+                        } label: {
+                            Label("Mark All Watched", systemImage: "checkmark.circle")
+                        }
                         Divider()
-                    }
-                    Button {
-                        isConfirmingMarkAllWatched = true
-                    } label: {
-                        Label("Mark All Watched", systemImage: "checkmark.circle")
-                    }
-                    Button {
-                        Task { await store?.load() }
-                    } label: {
-                        Label("Refresh Playlist", systemImage: "arrow.clockwise")
-                    }
-                    Button {
-                        Task { await prepareSaveAll(store: store) }
-                    } label: {
-                        Label("Save All to iPhone", systemImage: "arrow.down.circle")
+                        Button(role: .destructive) {
+                            Task { await prepareRedownloadAll(store: store) }
+                        } label: {
+                            Label("Delete All and Download Again", systemImage: "arrow.triangle.2.circlepath")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -89,6 +120,9 @@ struct PlaylistDetailView: View {
                 .saveAllConfirmation($pendingSaveAll) { plan in
                     Task { await performSaveAll(plan) }
                 }
+                .bulkRedownloadConfirmation($pendingRedownload) { plan in
+                    Task { await videoActionsCoordinator.performBulkRedownload(plan) }
+                }
             }
         }
         #endif
@@ -101,6 +135,9 @@ struct PlaylistDetailView: View {
             isPresented: $isConfirmingMarkAllWatched
         ) {
             Task { await store?.markAllWatched() }
+        }
+        .bulkRedownloadConfirmation($pendingRedownload) { plan in
+            Task { await videoActionsCoordinator.performBulkRedownload(plan) }
         }
         #endif
         #if os(iOS)
@@ -147,6 +184,16 @@ struct PlaylistDetailView: View {
             return "Mark every video in this playlist as watched?"
         }
         return "Mark all \(count) videos in this playlist as watched?"
+    }
+
+    /// The playlist's downloaded videos, confirmed before they are deleted and queued again.
+    /// The playlist itself is not touched. Already loaded, so there is nothing to walk.
+    private func prepareRedownloadAll(store: PlaylistDetailStore?) async {
+        guard let store else { return }
+        let videos = store.downloadedEntries.compactMap(\.video)
+        pendingRedownload = await videoActionsCoordinator.prepareBulkRedownload(
+            noun: "playlist", name: store.playlist?.playlistName, skipping: appSettings.redownloadSkipCodecs
+        ) { videos }
     }
 
     #if os(iOS)
@@ -209,25 +256,280 @@ struct PlaylistDetailView: View {
                 order: appSettings.playlistDetailSortOrder,
                 hideWatched: appSettings.hideWatched(in: .playlistEntries)
             )
+            #if os(iOS)
+            iOSContent(store: store, playlist: playlist, entries: visible)
+                .background(palette.canvas)
+            #else
             ScrollView {
                 TVOSEagerStack(alignment: .leading, spacing: 20) {
                     heroCard(store: store, playlist: playlist)
-                    #if os(tvOS)
                     tvControlsRow(store: store)
-                    #endif
                     entriesSection(store: store, entries: visible)
                 }
                 .pleviRootHorizontalInset(horizontalInset)
                 .padding(.vertical, 20)
             }
             .background(palette.canvas)
-            #if os(iOS)
-            .refreshable {
-                await store.load()
-            }
             #endif
         }
     }
+
+    #if os(iOS)
+    // MARK: - iPhone and iPad
+
+    /// The real place of each downloaded video in the playlist, 1-based and unique, in the
+    /// playlist's own order — whatever sort or filter is applied to what is shown. The index on
+    /// a card says where the video sits in the playlist, not where it landed in the current view.
+    private func playlistPositions(_ store: PlaylistDetailStore) -> [String: Int] {
+        var positions: [String: Int] = [:]
+        for (index, display) in store.downloadedEntries.enumerated() where positions[display.id] == nil {
+            positions[display.id] = index + 1
+        }
+        return positions
+    }
+
+    /// iPhone: cover, title and owner line, the Continue button, then the videos, in one scroll.
+    /// iPad: the same header pinned in a 300pt column beside a list that scrolls on its own.
+    @ViewBuilder
+    private func iOSContent(store: PlaylistDetailStore, playlist: Playlist, entries: [PlaylistEntryDisplay]) -> some View {
+        if isRegularWidth {
+            HStack(alignment: .top, spacing: 24) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        iOSCover(playlist: playlist, cornerRadius: 14)
+                        Text(playlist.playlistName ?? "Untitled playlist")
+                            .font(.system(size: 26, weight: .bold))
+                            .tracking(-0.65)
+                            .foregroundStyle(palette.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        ownerLine(store: store, playlist: playlist)
+                        playlistDescription(playlist: playlist)
+                        continueButton(store: store)
+                        markAllWatchedError(store: store)
+                    }
+                    .padding(.vertical, 18)
+                }
+                .frame(width: 300)
+                .scrollIndicators(.hidden)
+
+                // Told to take the rest of the width: left to itself the row sized to its content
+                // and sat in the middle of the screen with empty bands either side.
+                ScrollView {
+                    iOSEntries(store: store, entries: entries)
+                        .padding(.vertical, 18)
+                }
+                .frame(maxWidth: .infinity)
+                .refreshable { await store.load() }
+            }
+            .padding(.horizontal, PleviMetrics.insetPad)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .center, spacing: 12) {
+                        iOSCover(playlist: playlist, cornerRadius: 10)
+                            .frame(width: 96)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(playlist.playlistName ?? "Untitled playlist")
+                                .font(.system(size: 24, weight: .bold))
+                                .tracking(-0.6)
+                                .foregroundStyle(palette.ink)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            ownerLine(store: store, playlist: playlist)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    playlistDescription(playlist: playlist)
+                    continueButton(store: store)
+                    markAllWatchedError(store: store)
+                    iOSEntries(store: store, entries: entries)
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+                // Room for the floating tab bar, so the last video scrolls fully above it.
+                .padding(.bottom, 24)
+            }
+            .refreshable { await store.load() }
+        }
+    }
+
+    private func iOSCover(playlist: Playlist, cornerRadius: CGFloat) -> some View {
+        RemoteImage(path: playlist.playlistThumbnail, maxPixelSize: thumbnailPixelSize)
+            .aspectRatio(16.0 / 9.0, contentMode: .fill)
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    /// `Owner · 57 videos`, with the Custom and Subscribed marks after it. Tapping it opens the
+    /// owner's channel, as the avatar row it replaces did.
+    @ViewBuilder
+    private func ownerLine(store: PlaylistDetailStore, playlist: Playlist) -> some View {
+        let parts = [playlist.playlistChannel, videoCountText(store: store)].compactMap { $0 }
+        HStack(spacing: 8) {
+            if !parts.isEmpty {
+                let line = Text(parts.joined(separator: " · "))
+                    .pleviMono()
+                    .foregroundStyle(palette.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                if let channelId = playlist.playlistChannelId {
+                    Button { navigate(.channel(channelId)) } label: { line }
+                        .buttonStyle(.plain)
+                } else {
+                    line
+                }
+            }
+            compactBadges(playlist: playlist)
+        }
+    }
+
+    @ViewBuilder
+    private func playlistDescription(playlist: Playlist) -> some View {
+        if let description = playlist.playlistDescription, !description.isEmpty {
+            DescriptionText(text: description, onSeek: { _ in })
+        }
+    }
+
+    @ViewBuilder
+    private func markAllWatchedError(store: PlaylistDetailStore) -> some View {
+        if let error = store.markAllWatchedError {
+            Text(error.errorDescription ?? "Couldn't mark all watched.")
+                .font(.footnote)
+                .foregroundStyle(.red)
+        }
+    }
+
+    /// Opens the video at the top of the list that has not been watched — in the order the list is showing, so it follows the sort chosen for the playlist.
+    @ViewBuilder
+    private func continueButton(store: PlaylistDetailStore) -> some View {
+        let target = continueTarget(store: store)
+        if target != nil || !isEntriesLoaded(store) {
+            Button {
+                guard let target else { return }
+                lastOpenedVideoId = target.video.id
+                navigate(.video(target.video.id, fromPlaylistId: playlistId))
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "play.fill")
+                    Text(target?.title ?? "Continue")
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(palette.accent.opacity(target == nil ? 0.35 : 1), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(target == nil)
+        }
+    }
+
+    private func isEntriesLoaded(_ store: PlaylistDetailStore) -> Bool {
+        if case .loaded = store.entriesState { return true }
+        return false
+    }
+
+    private func continueTarget(store: PlaylistDetailStore) -> (video: Video, title: String)? {
+        guard isEntriesLoaded(store) else { return nil }
+        // Sorted but not filtered: with watched videos hidden the list may be empty, and the
+        // button should still have somewhere to go.
+        let all = store.downloadedEntries(
+            sortedBy: appSettings.playlistDetailSortField,
+            order: appSettings.playlistDetailSortOrder,
+            hideWatched: false
+        )
+        let positions = playlistPositions(store)
+        let unwatched = all.first { $0.video?.player?.watched != true }
+        guard let entry = unwatched ?? all.first, let video = entry.video else { return nil }
+        let number = positions[entry.id] ?? 1
+        return (video, "\(unwatched == nil ? "Watch Again" : "Continue") · #\(number)")
+    }
+
+    /// Large: a card per video, one column on iPhone and two on iPad. List: one card of rows, one
+    /// video per row on both. Chosen from the "…" menu.
+    @ViewBuilder
+    private func iOSEntries(store: PlaylistDetailStore, entries: [PlaylistEntryDisplay]) -> some View {
+        switch store.entriesState {
+        case .idle, .loading, .failed:
+            entriesSection(store: store, entries: entries)
+        case .loaded:
+            if entries.isEmpty {
+                entriesSection(store: store, entries: entries)
+            } else {
+                let positions = playlistPositions(store)
+                let owner = store.playlist?.playlistChannel
+                switch appSettings.playlistDetailViewStyle {
+                case .grid:
+                    largeEntries(store: store, entries: entries, positions: positions, owner: owner)
+                case .list:
+                    listEntries(store: store, entries: entries, positions: positions, owner: owner)
+                }
+            }
+        }
+    }
+
+    private func largeEntries(
+        store: PlaylistDetailStore, entries: [PlaylistEntryDisplay], positions: [String: Int], owner: String?
+    ) -> some View {
+        let spacing: CGFloat = isRegularWidth ? 14 : 12
+        let columns = Array(repeating: GridItem(.flexible(), spacing: spacing), count: isRegularWidth ? 2 : 1)
+        return LazyVGrid(columns: columns, alignment: .leading, spacing: spacing) {
+            ForEach(entries) { display in
+                if let video = display.video {
+                    entryButton(store: store, video: video) {
+                        VideoRow(
+                            video: video, layout: .largeCard, position: positions[display.id],
+                            ownerName: owner, actions: videoActions(list: store)
+                        )
+                        .padding(8)
+                        .pleviCard()
+                    }
+                }
+            }
+        }
+    }
+
+    private func listEntries(
+        store: PlaylistDetailStore, entries: [PlaylistEntryDisplay], positions: [String: Int], owner: String?
+    ) -> some View {
+        let rows = entries.compactMap { display in display.video.map { (id: display.id, video: $0) } }
+        return LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                entryButton(store: store, video: row.video) {
+                    VideoRow(
+                        video: row.video, layout: .wideRow, position: positions[row.id],
+                        ownerName: owner, actions: videoActions(list: store)
+                    )
+                    .padding(.vertical, 8)
+                    .overlay(alignment: .bottom) {
+                        // Nothing under the last row to separate it from.
+                        if index < rows.count - 1 { Divider() }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .pleviCard()
+    }
+
+    /// A video's page opens on tap, as everywhere else in the app, with this playlist as the one
+    /// its pager starts on.
+    private func entryButton<Label: View>(
+        store: PlaylistDetailStore, video: Video, @ViewBuilder label: () -> Label
+    ) -> some View {
+        Button {
+            lastOpenedVideoId = video.id
+            navigate(.video(video.id, fromPlaylistId: playlistId))
+        } label: {
+            label()
+        }
+        .pleviSelectableStyle()
+        .videoActionsContextMenu(video: video, actions: videoActions(list: store))
+    }
+    #endif
 
     #if os(tvOS)
     /// The sort and overflow controls, in the content and hard against the leading edge.
@@ -259,19 +561,28 @@ struct PlaylistDetailView: View {
             .pleviSelectableStyle()
 
             Menu {
-                if let playlist = store.playlist {
-                    PinToHomeMenuItem(target: .playlist(playlist))
+                Section("In the app") {
+                    if let playlist = store.playlist {
+                        PinToHomeMenuItem(target: .playlist(playlist))
+                    }
+                    Button {
+                        Task { await store.load() }
+                    } label: {
+                        Label("Refresh Playlist", systemImage: "arrow.clockwise")
+                    }
+                }
+                Section("On the server") {
+                    Button {
+                        isConfirmingMarkAllWatched = true
+                    } label: {
+                        Label("Mark All Watched", systemImage: "checkmark.circle")
+                    }
                     Divider()
-                }
-                Button {
-                    isConfirmingMarkAllWatched = true
-                } label: {
-                    Label("Mark All Watched", systemImage: "checkmark.circle")
-                }
-                Button {
-                    Task { await store.load() }
-                } label: {
-                    Label("Refresh Playlist", systemImage: "arrow.clockwise")
+                    Button(role: .destructive) {
+                        Task { await prepareRedownloadAll(store: store) }
+                    } label: {
+                        Label("Delete All and Download Again", systemImage: "arrow.triangle.2.circlepath")
+                    }
                 }
             } label: {
                 Text("More")
@@ -380,10 +691,6 @@ struct PlaylistDetailView: View {
                 }
             }
 
-            if !isRegularWidth {
-                compactInfoRow(store: store, playlist: playlist)
-            }
-
             if let description = playlist.playlistDescription, !description.isEmpty {
                 DescriptionText(text: description, onSeek: { _ in })
             }
@@ -441,41 +748,6 @@ struct PlaylistDetailView: View {
         // Load-bearing: without this the column shrinks to fit its content
         // instead of claiming the width left beside the thumbnail.
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// iPhone-only: owner + video count + Subscribed/Custom badges folded onto one line — see `headerDetails`'s own doc comment.
-    @ViewBuilder
-    private func compactInfoRow(store: PlaylistDetailStore, playlist: Playlist) -> some View {
-        HStack(spacing: 8) {
-            if let channelName = playlist.playlistChannel {
-                let content = HStack(spacing: 6) {
-                    ownerAvatar()
-                    Text(channelName)
-                        .pleviItemTitle()
-                        .foregroundStyle(palette.body)
-                        .lineLimit(1)
-                }
-                if let channelId = playlist.playlistChannelId {
-                    Button { navigate(.channel(channelId)) } label: { content }
-                        .buttonStyle(.plain)
-                } else {
-                    content
-                }
-            }
-
-            if let countText = videoCountText(store: store) {
-                Text("· \(countText)")
-                    .pleviMono()
-                    .foregroundStyle(palette.secondary)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .layoutPriority(1)
-            }
-
-            Spacer(minLength: 8)
-
-            compactBadges(playlist: playlist)
-        }
     }
 
     @ViewBuilder
@@ -602,8 +874,6 @@ struct PlaylistDetailView: View {
 
     // MARK: - Entries (iPhone: one card / iPad & tvOS: two-column grid of cards)
 
-    private let entryDividerLeadingInset: CGFloat = 142
-
     @ViewBuilder
     private func entriesSection(store: PlaylistDetailStore, entries: [PlaylistEntryDisplay]) -> some View {
         switch store.entriesState {
@@ -632,30 +902,10 @@ struct PlaylistDetailView: View {
                 )
                 .padding(.vertical, 20)
                 .pleviCard()
-            } else if isRegularWidth {
-                twoColumnEntries(store: store, entries: entries)
             } else {
-                singleColumnEntries(store: store, entries: entries)
+                twoColumnEntries(store: store, entries: entries)
             }
         }
-    }
-
-    /// iPhone: one continuous card, divider-separated rows — today's shape,
-    /// retinted/refonted.
-    private func singleColumnEntries(store: PlaylistDetailStore, entries: [PlaylistEntryDisplay]) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(entries.enumerated()), id: \.element.id) { position, display in
-                if let video = display.video {
-                    entryRow(store: store, video: video, position: position + 1)
-                }
-                if position < entries.count - 1 {
-                    Divider().padding(.leading, entryDividerLeadingInset)
-                }
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .pleviCard()
     }
 
     private func twoColumnEntries(store: PlaylistDetailStore, entries: [PlaylistEntryDisplay]) -> some View {

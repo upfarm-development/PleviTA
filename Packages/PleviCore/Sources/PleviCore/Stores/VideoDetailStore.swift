@@ -17,6 +17,10 @@ public final class VideoDetailStore: VideoMutating {
     public private(set) var similarState: LoadState<[Video]> = .idle
     public private(set) var navState: LoadState<[VideoNavEntry]> = .idle
     public private(set) var pagerState: LoadState<[PlaylistPagerPage]> = .idle
+    /// The playlist the pager on this screen is showing, which auto-play follows: swiping to
+    /// another playlist changes what plays next. Set by the pager, nil until it has drawn a page
+    /// (and for a video in no playlist).
+    public var selectedPlaylistId: String?
 
     private let client: TAClient
     private var didLoadComments = false
@@ -216,6 +220,23 @@ public final class VideoDetailStore: VideoMutating {
         } catch {
             pagerState = .failed(Self.taError(error))
         }
+    }
+
+    /// The video that follows `currentVideoId` in `playlistId`, in the order and with the hidden watched videos the pager shows.
+    public nonisolated static func nextVideo(
+        after currentVideoId: String,
+        inPlaylist playlistId: String,
+        client: TAClient,
+        hideWatched: Bool,
+        sortField: PlaylistEntrySortField,
+        sortOrder: HomeSortOrder
+    ) async -> Video? {
+        guard let entries = try? await client.nav(videoId: currentVideoId),
+              let entry = entries.first(where: { $0.playlistMeta?.playlistId == playlistId }) else { return nil }
+        let page = await pagerPage(
+            for: entry, client: client, currentVideoId: currentVideoId,
+            hideWatched: hideWatched, sortField: sortField, sortOrder: sortOrder)
+        return page?.nextVideo
     }
 
     /// One playlist lookup + bounded video fetch per `/nav/` entry, concurrently.

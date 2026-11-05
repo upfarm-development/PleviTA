@@ -5,12 +5,17 @@ import PleviCore
 import PleviFallbackPlayer
 
 struct PlayerScreen: View {
-    let videos: [Video]
+    /// The queue. Starts as what the caller passed and grows by one each time the next video in
+    /// the playlist is looked up when the current one ends.
+    @State private var videos: [Video]
     let startPosition: Double?
     let client: TAClient
     let imageLoader: ImageLoader?
     /// `AppSettings.autoPlayNext`.
     let autoPlayNext: Bool
+    /// Asked for the video to play after the one with this id, when the queue has run out. Nil
+    /// means there is no such source and the screen closes at the end of the queue.
+    let nextVideo: ((String) async -> Video?)?
     /// Settings → Playback → "Compatibility player". Read once, same rule as `autoPlayNext`
     /// above — a live change mid-session doesn't retroactively affect an engine already chosen.
     let fallbackPlayerMode: @MainActor () -> FallbackPlayerMode
@@ -41,6 +46,7 @@ struct PlayerScreen: View {
         client: TAClient,
         imageLoader: ImageLoader?,
         autoPlayNext: Bool,
+        nextVideo: ((String) async -> Video?)? = nil,
         fallbackPlayerMode: @escaping @MainActor () -> FallbackPlayerMode,
         isSponsorBlockEnabled: @escaping @MainActor () -> Bool,
         sponsorBlockCategories: @escaping @MainActor () -> Set<SponsorCategory>,
@@ -48,7 +54,8 @@ struct PlayerScreen: View {
         playbackHistory: PlaybackHistory?,
         onFinished: @escaping (Double, Bool) -> Void = { _, _ in }
     ) {
-        self.videos = videos
+        _videos = State(initialValue: videos)
+        self.nextVideo = nextVideo
         self.startPosition = startPosition
         self.client = client
         self.imageLoader = imageLoader
@@ -214,6 +221,10 @@ struct PlayerScreen: View {
 
     private func handleEnded() async {
         let nextIndex = currentIndex + 1
+        if autoPlayNext, !videos.indices.contains(nextIndex), let current = currentVideo,
+           let nextVideo, let resolved = await nextVideo(current.id) {
+            videos.append(resolved)
+        }
         guard autoPlayNext, videos.indices.contains(nextIndex) else {
             closeAndFinish()
             return

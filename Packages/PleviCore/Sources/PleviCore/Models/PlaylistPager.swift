@@ -24,6 +24,13 @@ public struct PlaylistPagerPage: Sendable, Equatable, Identifiable {
 
     public var id: String { playlistId }
 
+    /// The entry after the video being viewed, in the order this page shows: the "Next in
+    /// Playlist" the card offers, and what auto-play moves on to. Nil at the end of the playlist.
+    public var nextVideo: Video? {
+        guard let current = entries.firstIndex(where: \.isCurrent), entries.indices.contains(current + 1) else { return nil }
+        return entries[current + 1].video
+    }
+
     public init(
         playlistId: String,
         playlistName: String?,

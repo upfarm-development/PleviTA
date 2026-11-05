@@ -109,6 +109,16 @@ struct WatchedRequestBody: Encodable, Sendable {
 /// Body for `POST /api/download/<id>/`.
 struct DownloadStatusRequestBody: Encodable, Sendable { var status: String }
 
+/// Body for `POST /api/download/`, which adds videos to Tube Archivist's download queue.
+struct DownloadQueueRequestBody: Encodable, Sendable {
+    struct Item: Encodable, Sendable {
+        var youtubeId: String
+        var status: String
+        enum CodingKeys: String, CodingKey { case youtubeId = "youtube_id"; case status }
+    }
+    var data: [Item]
+}
+
 /// Body for `POST /api/playlist/<id>/`.
 struct CustomPlaylistActionBody: Encodable, Sendable {
     var action: String

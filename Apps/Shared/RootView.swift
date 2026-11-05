@@ -71,6 +71,10 @@ public struct RootView: View {
     /// One per app, shared by every video row/card's long-press and "…" menu (Ignore/Delete/
     /// Delete and Ignore/Add to Playlist) — see VideoActions.swift.
     @State private var videoActions = VideoActionsCoordinator()
+    #if os(iOS)
+    /// Which videos are picked while "Select" is on — see VideoSelection.swift.
+    @State private var videoSelection = VideoSelection()
+    #endif
     /// Lets a video page open already drawn instead of blank — see `VideoCache`.
     @State private var videoCache = VideoCache()
     @Environment(\.scenePhase) private var scenePhase
@@ -124,6 +128,7 @@ public struct RootView: View {
         .environment(videoActions)
         .environment(videoCache)
         #if os(iOS)
+        .environment(videoSelection)
         .environment(offlineLibrary)
         .environment(offlinePlaybackLedger)
         .environment(\.offlineDownloader, offlineDownloader)

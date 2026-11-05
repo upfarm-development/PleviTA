@@ -150,6 +150,10 @@ struct VideoDetailView: View {
                     client: client,
                     imageLoader: authStore.imageLoader,
                     autoPlayNext: appSettings.autoPlayNext,
+                    nextVideo: { [store] videoId in
+                        guard let store else { return nil }
+                        return await nextVideoForAutoPlay(after: videoId, store: store, client: client)
+                    },
                     fallbackPlayerMode: { [weak appSettings] in appSettings?.fallbackPlayerMode ?? .automatic },
                     isSponsorBlockEnabled: { [weak appSettings] in appSettings?.sponsorBlockEnabled ?? false },
                     sponsorBlockCategories: { [weak appSettings] in appSettings?.sponsorBlockCategories ?? [] },
@@ -253,7 +257,7 @@ struct VideoDetailView: View {
                         video: video,
                         controller: playbackController,
                         seekRequestSeconds: $seekRequestSeconds,
-                        onFinished: { Task { await store.refreshVideo() } }
+                        onFinished: { Task { await store.refreshVideo(); await autoPlayNext(after: video, store: store, client: client) } }
                     )
                 }
                 titleDetailsCard(video: video, store: store)
@@ -280,7 +284,7 @@ struct VideoDetailView: View {
                         video: video,
                         controller: playbackController,
                         seekRequestSeconds: $seekRequestSeconds,
-                        onFinished: { Task { await store.refreshVideo() } }
+                        onFinished: { Task { await store.refreshVideo(); await autoPlayNext(after: video, store: store, client: client) } }
                     )
                 }
                 titleDetailsCard(video: video, store: store)
@@ -764,6 +768,42 @@ struct VideoDetailView: View {
         }
     }
 
+    /// What auto-play moves on to: the next video in the playlist the pager is showing, in the order it shows them.
+    private func nextVideoForAutoPlay(after videoId: String, store: VideoDetailStore, client: TAClient) async -> Video? {
+        guard appSettings.autoPlayNext, let playlistId = store.selectedPlaylistId else { return nil }
+        return await VideoDetailStore.nextVideo(
+            after: videoId, inPlaylist: playlistId, client: client,
+            hideWatched: appSettings.hideWatched(in: .playlistEntries),
+            sortField: appSettings.playlistDetailSortField,
+            sortOrder: appSettings.playlistDetailSortOrder
+        )
+    }
+
+    #if os(iOS)
+    private func autoPlayNext(after video: Video, store: VideoDetailStore, client: TAClient) async {
+        guard let controller = playbackController, playbackSession.videoId == video.id,
+              let playlistId = store.selectedPlaylistId,
+              let next = await nextVideoForAutoPlay(after: video.id, store: store, client: client),
+              // Still this video's player, and still asked for: not stopped, not already moved on.
+              playbackSession.videoId == video.id else { return }
+        let resumePosition = ResumePolicy.silentStartPosition(
+            isWatched: next.player?.watched == true,
+            position: next.player?.position,
+            duration: next.player?.duration)
+        let route = Route.video(next.id, fromPlaylistId: playlistId)
+        playbackSession.handOff(to: next.id)
+        // The screen is swapped rather than another pushed, so a playlist watched end to end does not leave a back stack as long as the playlist.
+        if let playing = navigation.playing, navigation.path(for: playing.section).last == playing.route {
+            navigation.replaceTop(with: route, in: playing.section)
+        }
+        if var playing = navigation.playing {
+            playing.route = route
+            navigation.playing = playing
+        }
+        await controller.start(video: next, startPosition: resumePosition)
+    }
+    #endif
+
     private func pagerView(store: VideoDetailStore, appliesOwnCard: Bool = true) -> some View {
         PlaylistPagerView(
             state: store.pagerState,
@@ -780,6 +820,7 @@ struct VideoDetailView: View {
                     )
                 }
             },
+            onSelectionChange: { store.selectedPlaylistId = $0 },
             // Built here from `store` plus the environment coordinator so this function's own four callers (below) need no change.
             actions: videoActions(list: store),
             appliesOwnCard: appliesOwnCard

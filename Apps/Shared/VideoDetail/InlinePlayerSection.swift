@@ -83,6 +83,9 @@ struct InlinePlayerSection: View {
             // This section reappearing means the disappearance that scheduled a teardown was
             // AVKit moving the player around, not the user leaving.
             controller.cancelDeferredTeardown()
+            if controller.isHandingOff {
+                controller.onEnded = { onFinished() }
+            }
         }
         .onChange(of: seekRequestSeconds) { _, newValue in
             guard let seconds = newValue else { return }
@@ -132,6 +135,7 @@ struct InlinePlayerSection: View {
         }
         .onDisappear {
             guard controller.hasStarted,
+                  !controller.isHandingOff,
                   !controller.isFullScreen,
                   !controller.isPictureInPicture else { return }
             // Position first, same ordering `PlayerScreen.onDisappear` uses

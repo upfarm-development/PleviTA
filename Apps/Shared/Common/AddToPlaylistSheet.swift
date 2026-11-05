@@ -4,7 +4,7 @@ import SwiftUI
 import PleviCore
 
 struct AddToPlaylistSheet: View {
-    let video: Video
+    let videos: [Video]
     let coordinator: VideoActionsCoordinator
 
     @Environment(AuthStore.self) private var authStore
@@ -80,7 +80,7 @@ struct AddToPlaylistSheet: View {
                 ForEach(playlists) { playlist in
                     Button {
                         Task {
-                            await coordinator.add(video, to: playlist)
+                            await coordinator.add(videos, to: playlist)
                             dismiss()
                         }
                     } label: {
@@ -88,7 +88,7 @@ struct AddToPlaylistSheet: View {
                             Text(playlist.playlistName ?? "Untitled playlist")
                                 .foregroundStyle(palette.ink)
                             Spacer()
-                            if video.playlist?.contains(playlist.playlistId) == true {
+                            if videos.allSatisfy({ $0.playlist?.contains(playlist.playlistId) == true }) {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(palette.accent)
                             }

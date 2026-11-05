@@ -10,6 +10,7 @@ struct HeaderControlChip: ViewModifier {
             .font(.system(size: 17, weight: .medium))
             .foregroundStyle(palette.ink)
             .frame(width: 40, height: 40)
+            .contentShape(Circle())
             .background(palette.card, in: Circle())
             .shadow(
                 color: palette.cardShadow,

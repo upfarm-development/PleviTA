@@ -614,6 +614,83 @@ struct VideoDetailStoreTests {
         #expect(page.entries.first(where: { $0.isCurrent })?.video.id == "d")
     }
 
+    @Test("nextVideo follows the playlist it is asked about, in the pager's order")
+    func nextVideoFollowsTheChosenPlaylist() async throws {
+        let client = makeClient(serverURL: makeServerURL())
+        let one = multiPlaylistFixture("p1", ["a", "b", "c", "d", "e"])
+        let two = multiPlaylistFixture("p2", ["x", "c", "y"])
+        MockURLProtocol.handler = { request in
+            let url = request.url?.absoluteString ?? ""
+            let body: Data
+            if url.contains("/nav/") {
+                body = """
+                [
+                  {"playlist_meta": {"current_idx": 2, "playlist_id": "p1", "playlist_name": "One", "playlist_channel": "C"},
+                   "playlist_previous": {"youtube_id": "b", "idx": 1, "downloaded": true},
+                   "playlist_next": {"youtube_id": "d", "idx": 3, "downloaded": true}},
+                  {"playlist_meta": {"current_idx": 1, "playlist_id": "p2", "playlist_name": "Two", "playlist_channel": "C"},
+                   "playlist_previous": {"youtube_id": "x", "idx": 0, "downloaded": true},
+                   "playlist_next": {"youtube_id": "y", "idx": 2, "downloaded": true}}
+                ]
+                """.data(using: .utf8)!
+            } else if url.contains("/playlist/p1/") {
+                body = try! JSONEncoder().encode(one)
+            } else if url.contains("/playlist/p2/") {
+                body = try! JSONEncoder().encode(two)
+            } else {
+                let id = self.videoId(from: url)
+                body = try! JSONEncoder().encode(Video(youtubeId: id, title: "Title \(id)"))
+            }
+            return .init(statusCode: 200, headers: ["Content-Type": "application/json"], body: body)
+        }
+
+        let inFirst = await VideoDetailStore.nextVideo(
+            after: "c", inPlaylist: "p1", client: client, hideWatched: false, sortField: .playlistOrder, sortOrder: .asc)
+        let inSecond = await VideoDetailStore.nextVideo(
+            after: "c", inPlaylist: "p2", client: client, hideWatched: false, sortField: .playlistOrder, sortOrder: .asc)
+        let inUnknown = await VideoDetailStore.nextVideo(
+            after: "c", inPlaylist: "nope", client: client, hideWatched: false, sortField: .playlistOrder, sortOrder: .asc)
+
+        #expect(inFirst?.id == "d")
+        #expect(inSecond?.id == "y")
+        #expect(inUnknown == nil)
+    }
+
+    @Test("nextVideo skips watched videos when asked to, and is nil at the end of the playlist")
+    func nextVideoHidesWatchedAndStopsAtTheEnd() async throws {
+        let client = makeClient(serverURL: makeServerURL())
+        let playlist = multiPlaylistFixture("p1", ["a", "b", "c", "d"])
+        // "c" is watched, so after "b" comes "d".
+        let unwatched = Paginated(data: ["a", "b", "d"].map { Video(youtubeId: $0) })
+        MockURLProtocol.handler = { request in
+            let url = request.url?.absoluteString ?? ""
+            let body: Data
+            if url.contains("/nav/") {
+                body = Self.navJSON(currentIdx: 1, previousId: "a", nextId: "c")
+            } else if url.contains("/playlist/p1/") {
+                body = try! JSONEncoder().encode(playlist)
+            } else if url.contains("watch=unwatched") {
+                body = try! JSONEncoder().encode(unwatched)
+            } else {
+                let id = self.videoId(from: url)
+                body = try! JSONEncoder().encode(Video(youtubeId: id, title: "Title \(id)"))
+            }
+            return .init(statusCode: 200, headers: ["Content-Type": "application/json"], body: body)
+        }
+
+        let skipping = await VideoDetailStore.nextVideo(
+            after: "b", inPlaylist: "p1", client: client, hideWatched: true, sortField: .playlistOrder, sortOrder: .asc)
+        let plain = await VideoDetailStore.nextVideo(
+            after: "b", inPlaylist: "p1", client: client, hideWatched: false, sortField: .playlistOrder, sortOrder: .asc)
+        #expect(skipping?.id == "d")
+        #expect(plain?.id == "c")
+
+        // The last video in the playlist has nothing after it.
+        let atEnd = await VideoDetailStore.nextVideo(
+            after: "d", inPlaylist: "p1", client: client, hideWatched: false, sortField: .playlistOrder, sortOrder: .asc)
+        #expect(atEnd == nil)
+    }
+
     @Test("loadPager with hideWatched still shows the current video even if it's watched")
     func loadPagerHideWatchedKeepsWatchedCurrentVideo() async throws {
         let client = makeClient(serverURL: makeServerURL())

@@ -46,6 +46,13 @@ final class NavigationModel {
     }
     var playing: PlayingLocation?
 
+    /// Swaps the screen on top of a section's stack for another, without growing the stack.
+    func replaceTop(with route: Route, in section: AppSection) {
+        var existing = path(for: section)
+        if existing.isEmpty { existing.append(route) } else { existing[existing.count - 1] = route }
+        paths[section] = existing
+    }
+
     /// Brings a route to the top of its section and selects that section.
     func reveal(_ route: Route, in section: AppSection) {
         // The no-op test comes first on purpose.

@@ -9,6 +9,13 @@ struct VideoRow: View {
         /// The full-width list row — today's `VideoListRow` body, with an
         /// optional leading `position` index for playlist detail.
         case row
+        /// A playlist's "Large" view: the thumbnail across the full width of a card with the
+        /// index, duration and watched badges on it, the title and date underneath.
+        case largeCard
+        /// The list view on iPhone and iPad — a playlist's, a channel's and Home's: a wide
+        /// thumbnail with the duration and watched badges on it (and the index, where there is
+        /// one), the title beside it.
+        case wideRow
     }
 
     let video: Video
@@ -20,11 +27,18 @@ struct VideoRow: View {
     /// How far into the video you are, as a bar along the bottom of the thumbnail — drawn only once it has been started.
     var showProgressBar: Bool = true
     var highlight: Color? = nil
+    /// The name of the channel that owns the playlist this row is shown in. The playlist
+    /// layouts leave the channel off the row when it is this one, since it would repeat on
+    /// every row, and name it only when it differs.
+    var ownerName: String? = nil
     /// Every action this row offers, as one value — see VideoActions.swift for why
     /// one parameter and not six closures.
     var actions: VideoActions
 
     @Environment(VideoCache.self) private var videoCache
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
     #if os(iOS)
     /// Drives the downloaded badge. Read as a set — see
     /// `OfflineLibrary.downloadedVideoIds` for why this one is not `isSaved`.
@@ -71,6 +85,8 @@ struct VideoRow: View {
             switch layout {
             case .card: cardBody
             case .row: rowBody
+            case .largeCard: playlistLargeBody
+            case .wideRow: playlistListBody
             }
         }
         .task { cacheForFastOpen() }
@@ -192,6 +208,143 @@ struct VideoRow: View {
             parts.append("\(Int(progress)) percent watched")
         }
         return parts.joined(separator: ", ")
+    }
+
+    // MARK: - Playlist layouts (iPhone/iPad)
+
+    /// `Channel · date`, or just the date when the channel is the playlist's own owner.
+    private var playlistMetaLine: String? {
+        var parts: [String] = []
+        if let name = video.channel?.channelName, name != ownerName { parts.append(name) }
+        if let date = PleviFormatting.displayDate(from: video.published) { parts.append(date) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private var playlistLargeBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            playlistThumbnail(cornerRadius: 12, fixedSize: nil, maxPixelSize: 640)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(video.title ?? "Untitled")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(titleColor)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let playlistMetaLine {
+                    Text(playlistMetaLine)
+                        .pleviMono()
+                        .foregroundStyle(metadataColor)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.bottom, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityHint(accessibilityHintText)
+    }
+
+    /// A little larger on iPad, where the row has the width for it.
+    private var playlistListThumbnailSize: CGSize {
+        #if os(iOS)
+        horizontalSizeClass == .regular ? CGSize(width: 184, height: 104) : CGSize(width: 136, height: 76)
+        #else
+        CGSize(width: 136, height: 76)
+        #endif
+    }
+
+    private var playlistListBody: some View {
+        HStack(alignment: .center, spacing: 12) {
+            playlistThumbnail(cornerRadius: 10, fixedSize: playlistListThumbnailSize, maxPixelSize: 480)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(video.title ?? "Untitled")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(titleColor)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                if let playlistMetaLine {
+                    Text(playlistMetaLine)
+                        .pleviMono()
+                        .foregroundStyle(metadataColor)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityHint(accessibilityHintText)
+    }
+
+    /// The thumbnail the two playlist layouts share. Every badge is an overlay, so none of them
+    /// can claim space of its own — `thumbnail(...)`'s watched tick asks for infinite size and
+    /// needed a fixed frame to stop it filling a scroll view.
+    @ViewBuilder
+    private func playlistThumbnail(cornerRadius: CGFloat, fixedSize: CGSize?, maxPixelSize: CGFloat) -> some View {
+        let large = layout == .largeCard
+        Group {
+            if let fixedSize {
+                RemoteImage(path: video.vidThumbUrl, maxPixelSize: maxPixelSize)
+                    .aspectRatio(16.0 / 9.0, contentMode: .fill)
+                    .frame(width: fixedSize.width, height: fixedSize.height)
+            } else {
+                RemoteImage(path: video.vidThumbUrl, maxPixelSize: maxPixelSize)
+                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(alignment: .topLeading) {
+            if let position {
+                Text("\(position)")
+                    .font(.system(size: large ? 12 : 11, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(Color.black.opacity(0.85))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .padding(large ? 8 : 6)
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if isWatched {
+                Image(systemName: "checkmark")
+                    .font(.system(size: large ? 12 : 10, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: large ? 22 : 18, height: large ? 22 : 18)
+                    .background(Color(red: 52 / 255, green: 199 / 255, blue: 89 / 255), in: Circle())
+                    .padding(large ? 8 : 6)
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            DurationBadge(text: durationText).padding(6)
+        }
+        #if os(iOS)
+        // Bottom-leading here: the index badge has the top-leading corner.
+        .overlay(alignment: .bottomLeading) {
+            if isDownloaded {
+                Image(systemName: "arrow.down.circle.fill")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, .blue)
+                    .font(large ? .title3 : .caption)
+                    .shadow(radius: 2)
+                    .padding(6)
+            }
+        }
+        #endif
+        .overlay(alignment: .bottom) {
+            if showProgressBar, let progress = video.player?.progress, progress > 0 {
+                GeometryReader { proxy in
+                    Rectangle()
+                        .fill(palette.accent)
+                        .frame(width: proxy.size.width * CGFloat(min(max(progress / 100, 0), 1)))
+                }
+                .frame(height: 3)
+            }
+        }
     }
 
     // MARK: - Thumbnail

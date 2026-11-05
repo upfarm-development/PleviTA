@@ -12,6 +12,9 @@ struct PlaylistPagerView: View {
     /// defaults its own pager to the same playlist.
     var onSelect: (String, String) -> Void
     var onRetry: () -> Void
+    /// Told which playlist is showing — at first, and again whenever the user swipes to another —
+    /// because auto-play moves on in that one.
+    var onSelectionChange: (String?) -> Void = { _ in }
     /// Every action a row/callout in this pager offers — see VideoActions.swift for why one parameter and not six closures.
     var actions: VideoActions
     /// `false` only for `VideoDetailView`'s iPhone-only merged playlist + Similar Videos card (`playlistAndSimilarCard`'s own doc comment).
@@ -128,6 +131,7 @@ struct PlaylistPagerView: View {
         }
         .padding(appliesOwnCard ? 16 : 0)
         .modifier(OptionalCard(applies: appliesOwnCard))
+        .onChange(of: resolvedSelection, initial: true) { _, selected in onSelectionChange(selected) }
     }
 
     private var maxPageHeight: CGFloat {

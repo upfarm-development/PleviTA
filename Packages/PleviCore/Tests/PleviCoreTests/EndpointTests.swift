@@ -24,6 +24,7 @@ struct EndpointTests {
             .setWatched(id: "abc", isWatched: true),
             .deleteVideo(id: "abc"),
             .setDownloadStatus(id: "abc", status: "ignore"),
+            .addToDownloadQueue(ids: ["abc"]),
             .channels(),
             .channel(id: "abc"),
             .channelAggs(id: "abc"),
@@ -95,6 +96,20 @@ struct EndpointTests {
         let body = try #require(endpoint.body)
         let object = try JSONSerialization.jsonObject(with: body) as? [String: Any]
         #expect(object?["status"] as? String == "ignore-force")
+    }
+
+    @Test("adding to the download queue posts one pending item per id to download/")
+    func addToDownloadQueueEndpoint() throws {
+        let endpoint = Endpoint.addToDownloadQueue(ids: ["abc", "def"])
+        #expect(endpoint.method == .post)
+        #expect(endpoint.path == "download/")
+        // No autostart: the user starts the queue in Tube Archivist.
+        #expect(endpoint.query.isEmpty)
+        let body = try #require(endpoint.body)
+        let object = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+        let items = try #require(object?["data"] as? [[String: Any]])
+        #expect(items.compactMap { $0["youtube_id"] as? String } == ["abc", "def"])
+        #expect(items.allSatisfy { $0["status"] as? String == "pending" })
     }
 
     @Test("custom playlist add endpoint encodes action and snake_case video_id")

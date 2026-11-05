@@ -107,6 +107,8 @@ public final class AppSettings {
         static let homeViewStyle = "settings.homeViewStyle"
         static let channelsViewStyle = "settings.channelsViewStyle"
         static let playlistsViewStyle = "settings.playlistsViewStyle"
+        static let playlistDetailViewStyle = "settings.playlistDetailViewStyle"
+        static let channelDetailViewStyle = "settings.channelDetailViewStyle"
         static let playlistsSortField = "settings.playlistsSortField"
         static let playlistsSortOrder = "settings.playlistsSortOrder"
         static let channelVideoSortField = "settings.channelVideoSortField"
@@ -124,6 +126,7 @@ public final class AppSettings {
         /// Set once the old SponsorBlock master switch has been folded into the categories.
         static let sponsorBlockSwitchRetired = "settings.sponsorBlockSwitchRetired"
         static let sponsorBlockCategories = "settings.sponsorBlockCategories"
+        static let redownloadSkipCodecs = "settings.redownloadSkipCodecs"
         static let allowCellularDownloads = "settings.allowCellularDownloads"
         static let artworkCacheLimitMB = "settings.artworkCacheLimitMB"
     }
@@ -194,6 +197,17 @@ public final class AppSettings {
 
     public var playlistsViewStyle: ViewStyle {
         didSet { defaults.set(playlistsViewStyle.rawValue, forKey: Key.playlistsViewStyle) }
+    }
+
+    /// A playlist's own video list on iPhone and iPad: `.grid` is "Large" (a card per video),
+    /// `.list` is "List" (one card of rows). Chosen from that screen's "…" menu.
+    public var playlistDetailViewStyle: ViewStyle {
+        didSet { defaults.set(playlistDetailViewStyle.rawValue, forKey: Key.playlistDetailViewStyle) }
+    }
+
+    /// A channel's own video grid on iPhone and iPad — grid or list, from that screen's "…" menu.
+    public var channelDetailViewStyle: ViewStyle {
+        didSet { defaults.set(channelDetailViewStyle.rawValue, forKey: Key.channelDetailViewStyle) }
     }
 
     /// `PlaylistsView`'s sort control — sorts the loaded playlist list
@@ -267,6 +281,10 @@ public final class AppSettings {
         didSet { defaults.set(sponsorBlockCategories.map(\.rawValue).sorted(), forKey: Key.sponsorBlockCategories) }
     }
 
+    public var redownloadSkipCodecs: Set<VideoCodec> {
+        didSet { defaults.set(redownloadSkipCodecs.map(\.rawValue).sorted(), forKey: Key.redownloadSkipCodecs) }
+    }
+
     public var allowCellularDownloads: Bool {
         didSet { defaults.set(allowCellularDownloads, forKey: Key.allowCellularDownloads) }
     }
@@ -298,6 +316,8 @@ public final class AppSettings {
         homeViewStyle = ViewStyle(rawValue: defaults.string(forKey: Key.homeViewStyle) ?? "") ?? .grid
         channelsViewStyle = ViewStyle(rawValue: defaults.string(forKey: Key.channelsViewStyle) ?? "") ?? .grid
         playlistsViewStyle = ViewStyle(rawValue: defaults.string(forKey: Key.playlistsViewStyle) ?? "") ?? .grid
+        playlistDetailViewStyle = ViewStyle(rawValue: defaults.string(forKey: Key.playlistDetailViewStyle) ?? "") ?? .grid
+        channelDetailViewStyle = ViewStyle(rawValue: defaults.string(forKey: Key.channelDetailViewStyle) ?? "") ?? .grid
         playlistsSortField = PlaylistsSortField(rawValue: defaults.string(forKey: Key.playlistsSortField) ?? "") ?? .name
         playlistsSortOrder = HomeSortOrder(rawValue: defaults.string(forKey: Key.playlistsSortOrder) ?? "") ?? .asc
         channelVideoSortField = HomeSortField(rawValue: defaults.string(forKey: Key.channelVideoSortField) ?? "") ?? .downloaded
@@ -329,6 +349,9 @@ public final class AppSettings {
             defaults.set(true, forKey: Key.sponsorBlockSwitchRetired)
         }
         sponsorBlockCategories = categories
+
+        redownloadSkipCodecs = Set(
+            (defaults.array(forKey: Key.redownloadSkipCodecs) as? [String] ?? []).compactMap(VideoCodec.init(rawValue:)))
 
         // A stored order only counts if it's a genuine reordering of all three cases.
         let storedSearchResultsOrder = (defaults.array(forKey: Key.searchResultsOrder) as? [String])?
