@@ -51,7 +51,7 @@ You get the things you'd expect: Home, Channels, Playlists and Search, playback 
 - **Made for slow connections.** Thumbnails, channel art and a copy of Home are kept on the device, so the app opens quickly and still shows pictures when the connection is poor or missing.
 
 <p align="center">
-  <a href="https://testflight.apple.com/join/bBVGzREd"><img src="docs/testflight-button.svg" alt="Join the beta on TestFlight" width="240"></a>
+  <a href="https://testflight.apple.com/join/bBVGzREd"><img src="https://img.shields.io/badge/Join_the-TestFlight_Beta-0D96F6?style=for-the-badge&logo=apple&logoColor=white" alt="Join the TestFlight Beta"></a>
 </p>
 
 ## Privacy
